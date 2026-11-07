@@ -1,5 +1,42 @@
-# Tool configuration only. Phase 2 adds the [project] table and moves
-# dependencies here from requirements*.txt (managed with uv).
+# Dependencies are managed with uv: edit with `uv add` / `uv add --dev`, never pip.
+# Exact versions of every package live in uv.lock (committed).
+
+[project]
+name = "sound-realty-price-api"
+version = "0.1.0"
+description = "House-price prediction REST API for Sound Realty (Seattle area)."
+requires-python = "==3.10.*"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    # model.pkl (Pipeline(RobustScaler -> KNN)) was pickled with these versions. Another
+    # version can fail to unpickle or silently change predictions: never relax these pins
+    # without re-running the characterization test (see docs/adr/001).
+    "scikit-learn==1.7.2",
+    "numpy==2.2.6",
+    "pandas==2.3.3",
+    # Transitive (via scikit-learn), pinned here because KNN distances run through it.
+    "scipy==1.15.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "httpx",
+    "hypothesis",
+    # Exact: must match the revs in .pre-commit-config.yaml; bump them together.
+    "ruff==0.17.4",
+    "mypy==2.4.1",
+    "pre-commit",
+]
+
+[tool.uv]
+# An application, not a library: install the dependencies only, never the project itself.
+package = false
+# Local and Docker (Dockerfile COPY --from=ghcr.io/astral-sh/uv) use the same uv.
+required-version = "==0.13.7"
 
 [tool.ruff]
 # The service runs on python:3.10-slim today. Raise this when the image moves to 3.11+.
