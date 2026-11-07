@@ -133,12 +133,7 @@ class GuardGitTest(unittest.TestCase):
     # Bug: heredoc bodies were read as commands.
 
     def test_ignores_git_text_inside_heredoc(self) -> None:
-        command = (
-            "cat > cases.py <<'EOF'\n"
-            "case = 'git status && git commit -m \"bad\"'\n"
-            "EOF\n"
-            "ls"
-        )
+        command = "cat > cases.py <<'EOF'\ncase = 'git status && git commit -m \"bad\"'\nEOF\nls"
         self.assert_allowed(command, self.feature_repo)
 
     def test_still_checks_commands_after_heredoc(self) -> None:

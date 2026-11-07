@@ -160,9 +160,7 @@ def main() -> None:
                 if dest == "HEAD":
                     dest = current_branch(cwd, global_options)
                 if dest in PROTECTED:
-                    block(
-                        f"pushing to '{dest}' is not allowed; open a pull request instead."
-                    )
+                    block(f"pushing to '{dest}' is not allowed; open a pull request instead.")
             if not refs and current_branch(cwd, global_options) in PROTECTED:
                 block("pushing from main/master is not allowed; push the phase branch.")
 
