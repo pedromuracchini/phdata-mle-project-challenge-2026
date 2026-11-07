@@ -1,5 +1,5 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
-	setup test test-hooks lint typecheck bench docker-build docker-run
+	setup test test-hooks test-docker lint typecheck bench docker-build docker-run
 
 # Build the test Docker image
 test-build:
@@ -49,12 +49,16 @@ require = @command -v $(1) >/dev/null 2>&1 || { \
 # that the image's Python 3.10 resolves to.
 setup: test-build
 
-# Hook tests, then the existing unit tests in Docker.
-test: test-hooks test-unit
-	@if [ ! -f "$(CHARACTERIZATION_TEST)" ]; then \
-		echo "notice: $(CHARACTERIZATION_TEST) does not exist yet (added in Phase 1)."; \
-		echo "notice: predictions for complete requests are not checked against a baseline."; \
-	fi
+# Hook tests, the unit tests and the characterization test, all but the hooks in Docker.
+test: test-hooks test-unit test-docker
+
+# Characterization test: complete requests must reproduce tests/fixtures/baseline_predictions.json.
+# Runs in the test image because the baseline was recorded with the image's library versions;
+# the host does not have them (and does not have pytest) until Phase 2.
+test-docker: test-build
+	docker run --rm \
+		-v $(PWD)/test-results:/app/test-results \
+		ml-api-test pytest $(CHARACTERIZATION_TEST)
 
 # Tests for the Claude Code hooks; standard library only, runs on the host.
 test-hooks:
@@ -66,9 +70,12 @@ lint:
 	ruff check .
 	ruff format --check .
 
+# Two runs: tests/conftest.py imports `src.main`, which mypy would otherwise also find as
+# `main` (mypy_path = src) and reject as the same file under two module names.
 typecheck:
 	$(call require,mypy)
 	mypy src .claude/hooks
+	mypy scripts tests
 
 bench:
 	@echo "error: no benchmark yet. scripts/benchmark.py is added in Phase 4." >&2
@@ -95,8 +102,9 @@ help:
 	@echo ""
 	@echo "Standard targets:"
 	@echo "  setup             - Install dependencies (builds the Docker test image)"
-	@echo "  test              - Run hook tests and unit tests"
+	@echo "  test              - Run hook, unit and characterization tests"
 	@echo "  test-hooks        - Run tests for the Claude Code hooks"
+	@echo "  test-docker       - Run the characterization test in Docker"
 	@echo "  lint              - Run ruff lint and format check"
 	@echo "  typecheck         - Run mypy"
 	@echo "  bench             - Run the benchmark (not available until Phase 4)"

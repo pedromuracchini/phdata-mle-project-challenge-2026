@@ -51,5 +51,14 @@ module = [
     "model.create_model", # training script, model not retrained
     "api.endpoints",      # LEGACY: Phases 3-5
     "utils.loader",       # LEGACY: Phases 3-5
+    "tests.conftest",                         # LEGACY: rewrite when the fixtures change
+    "tests.unit.test_api_unit",               # LEGACY: rewrite when the fixtures change
+    "tests.integration.test_api_integration", # LEGACY: rewrite when the fixtures change
 ]
 ignore_errors = true
+
+# pytest is not installed on the host until Phase 2, so its decorators are Any and every
+# parametrized test would be reported as untyped. Remove with `ignore_missing_imports`.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_decorators = false
