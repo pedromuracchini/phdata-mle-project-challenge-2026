@@ -9,7 +9,7 @@ test-build:
 test-unit: test-build
 	docker run --rm \
 		-v $(PWD)/test-results:/app/test-results \
-		ml-api-test pytest test/unit -v
+		ml-api-test pytest tests/unit -v
 
 # Run integration tests with Docker Compose
 test-integration:
@@ -22,7 +22,7 @@ test-all: test-build
 	@echo "Running unit tests..."
 	docker run --rm \
 		-v $(PWD)/test-results:/app/test-results \
-		ml-api-test pytest test/unit -v
+		ml-api-test pytest tests/unit -v
 
 # Clean up containers and test artifacts
 clean:

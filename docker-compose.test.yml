@@ -30,9 +30,9 @@ services:
       - API_BASE_URL=http://api:8000
     volumes:
       - ./test-results:/app/test-results
-      - ./test:/app/test:ro
+      - ./tests:/app/tests:ro
       - ./src:/app/src:ro
-    command: pytest test/integration -v
+    command: pytest tests/integration -v
     networks:
       - test-network
 

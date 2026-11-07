@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements-test.txt
 
 # Copy application code
 COPY src ./src
-COPY test ./test
+COPY tests ./tests
 COPY pytest.ini .
 
 # Create symlinks for model and data directories to match expected paths
