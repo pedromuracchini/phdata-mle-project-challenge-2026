@@ -19,7 +19,9 @@ mle-project-challenge-2026
 │   │   └── future_unseen_examples.csv # Examples for testing the API
 │   └── utils
 │       └── loader.py          # Utility functions for loading the model
-├── requirements.txt            # Project dependencies
+├── pyproject.toml              # Dependencies (uv) and tool configuration
+├── uv.lock                     # Locked versions of every dependency (committed)
+├── .python-version             # Python version used locally and in the images
 ├── Dockerfile                  # Docker instructions for deployment
 ├── README.md                   # Project documentation
 └── tests
@@ -32,6 +34,18 @@ mle-project-challenge-2026
 
 - Docker installed on your system
 - Git (for cloning the repository)
+- [uv](https://docs.astral.sh/uv/) for local development (it installs the right Python itself)
+
+### Local development (uv)
+
+Dependencies are locked in `uv.lock`; the Docker images install the same versions.
+
+```bash
+make setup                   # uv sync --frozen: Python from .python-version + locked deps
+make lint typecheck test     # ruff, mypy and the tests, all through `uv run`
+```
+
+Add a dependency with `uv add <pkg>` (or `uv add --dev <pkg>`), never with pip.
 
 ### Step 1: Clone the Repository
 
@@ -43,6 +57,9 @@ cd mle-project-challenge-2026
 ### Step 2: Generate Model Artifacts (First Time Only)
 
 Before running the API, you need to generate the model files. This only needs to be done once, or when you want to retrain the model.
+
+> **Note:** `src/model/model.pkl` is already committed and must not be retrained in this
+> project. Running the container below with the volume mount overwrites it.
 
 **Build the model creation Docker image:**
 ```bash
@@ -209,10 +226,10 @@ docker ps  # Should list running containers without error
 
 Solution: Check if the API container is healthy.
 ```bash
-docker-compose -f docker-compose.test.yml up
+docker compose -f docker-compose.test.yml up
 # In another terminal:
-docker-compose -f docker-compose.test.yml ps
-docker-compose -f docker-compose.test.yml logs api
+docker compose -f docker-compose.test.yml ps
+docker compose -f docker-compose.test.yml logs api
 ```
 
 **Issue: Tests pass locally but fail in Docker**
@@ -220,13 +237,13 @@ docker-compose -f docker-compose.test.yml logs api
 Solution: This usually indicates environment differences. Check:
 - Model artifacts exist in `model/` directory
 - Data files exist in `data/` directory
-- All dependencies are listed in `requirements.txt`
+- The lockfile is in sync with `pyproject.toml` (`uv lock --check`)
 
 **Issue: "Port 8000 already in use"**
 
 Solution: Stop any running containers or services using port 8000.
 ```bash
-docker-compose -f docker-compose.test.yml down
+docker compose -f docker-compose.test.yml down
 docker stop housing-api  # If the main API is running
 ```
 
