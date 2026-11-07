@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-11-07T22:28:33Z",
+  "base_url": "http://localhost:8000",
+  "load": {
+    "requests": 300,
+    "concurrency": 1,
+    "warmup": 20,
+    "runs": 1,
+    "payloads": "100 rows of future_unseen_examples.csv, cycled"
+  },
+  "client_python": "3.13.5",
+  "runs": [
+    {
+      "run": 1,
+      "requests": 300,
+      "concurrency": 1,
+      "errors": 0,
+      "wall_time_s": 20.73983799099915,
+      "throughput_rps": 14.46491530600174,
+      "latency_ms": {
+        "min": 24.706,
+        "p50": 68.148,
+        "p95": 75.476,
+        "p99": 76.117,
+        "max": 76.347,
+        "mean": 69.112
+      }
+    }
+  ]
+}

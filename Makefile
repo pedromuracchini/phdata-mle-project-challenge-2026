@@ -77,9 +77,15 @@ typecheck:
 	mypy src .claude/hooks
 	mypy scripts tests
 
+# Benchmark a service that is already running (e.g. `make docker-run` in another terminal).
+# Fixed load profile: see scripts/benchmark.py. Results land in bench-results/ (gitignored);
+# copy the ones worth keeping to docs/benchmarks/. Standard library only, runs on the host.
+BENCH_URL ?= http://localhost:$(PORT)
+BENCH_OUTPUT ?= bench-results/bench-$(shell date -u +%Y%m%dT%H%M%SZ).json
 bench:
-	@echo "error: no benchmark yet. scripts/benchmark.py is added in Phase 4." >&2
-	@exit 1
+	$(call require,python3)
+	@mkdir -p $(dir $(BENCH_OUTPUT))
+	python3 scripts/benchmark.py --base-url $(BENCH_URL) --output $(BENCH_OUTPUT)
 
 docker-build:
 	docker build -t $(IMAGE) .
@@ -107,7 +113,7 @@ help:
 	@echo "  test-docker       - Run the characterization test in Docker"
 	@echo "  lint              - Run ruff lint and format check"
 	@echo "  typecheck         - Run mypy"
-	@echo "  bench             - Run the benchmark (not available until Phase 4)"
+	@echo "  bench             - Benchmark the running API (BENCH_URL=$(BENCH_URL))"
 	@echo "  docker-build      - Build the API image"
 	@echo "  docker-run        - Run the API on port $(PORT)"
 	@echo ""
