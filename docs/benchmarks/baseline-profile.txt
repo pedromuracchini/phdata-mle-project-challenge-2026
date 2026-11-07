@@ -1,0 +1,191 @@
+cProfile of the POST /predict handler (/scripts/profile_predict.py)
+generated_at: 2026-11-07T22:35:55Z
+python: 3.10.22  cwd: /app
+OMP_NUM_THREADS=(unset)  cpu_count=16
+payload: {'bedrooms': 3, 'bathrooms': 2.0, 'sqft_living': 1500.0, 'sqft_lot': 5000.0, 'floors': 1.0, 'sqft_above': 1200.0, 'sqft_basement': 300.0, 'zipcode': '98042'}
+warm-up result: {'predicted_price': np.float64(253980.0)}  profiled result: {'predicted_price': np.float64(253980.0)}
+single profiled call, wall time under profiler: 42.3 ms
+aggregate: 50 calls, mean wall time under profiler: 39.5 ms
+Scope: handler body only (no HTTP parsing, no uvicorn). Times include cProfile overhead.
+====================================================================================================
+SINGLE CALL (sorted by cumulative, top 30)
+====================================================================================================
+         62731 function calls (61603 primitive calls) in 0.042 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1057 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.042    0.042 profile_predict.py:144(call)
+        1    0.000    0.000    0.042    0.042 runners.py:8(run)
+        3    0.000    0.000    0.042    0.014 base_events.py:613(run_until_complete)
+        3    0.000    0.000    0.042    0.014 base_events.py:589(run_forever)
+        6    0.000    0.000    0.042    0.007 base_events.py:1832(_run_once)
+        6    0.000    0.000    0.042    0.007 events.py:78(_run)
+        6    0.000    0.000    0.042    0.007 {method 'run' of '_contextvars.Context' objects}
+        1    0.000    0.000    0.042    0.042 endpoints.py:30(predict)
+        1    0.000    0.000    0.031    0.031 {built-in method builtins.print}
+        1    0.000    0.000    0.031    0.031 frame.py:1208(__repr__)
+        1    0.000    0.000    0.031    0.031 _decorators.py:325(wrapper)
+        1    0.000    0.000    0.031    0.031 frame.py:1314(to_string)
+        1    0.000    0.000    0.030    0.030 format.py:939(to_string)
+        1    0.000    0.000    0.030    0.030 string.py:28(to_string)
+        1    0.000    0.000    0.030    0.030 string.py:40(_get_string_representation)
+        1    0.000    0.000    0.021    0.021 string.py:153(_fit_strcols_to_terminal_width)
+        2    0.000    0.000    0.012    0.006 string.py:34(_get_strcols)
+        2    0.000    0.000    0.012    0.006 format.py:472(get_strcols)
+        2    0.000    0.000    0.012    0.006 format.py:704(_get_strcols_without_index)
+        1    0.000    0.000    0.010    0.010 string.py:163(<listcomp>)
+       40    0.000    0.000    0.010    0.000 format.py:751(format_col)
+  115/114    0.001    0.000    0.008    0.000 series.py:392(__init__)
+       42    0.000    0.000    0.007    0.000 format.py:1079(format_array)
+       29    0.000    0.000    0.006    0.000 generic.py:4779(drop)
+       29    0.000    0.000    0.006    0.000 generic.py:4818(_drop_axis)
+       42    0.000    0.000    0.006    0.000 format.py:1193(get_result)
+       28    0.000    0.000    0.006    0.000 series.py:5278(drop)
+       36    0.000    0.000    0.005    0.000 accessor.py:3076(len)
+       37    0.000    0.000    0.004    0.000 format.py:1471(_format_strings)
+       37    0.000    0.000    0.004    0.000 format.py:1343(get_result_as_array)
+
+
+
+====================================================================================================
+SINGLE CALL (sorted by tottime, top 30)
+====================================================================================================
+         62731 function calls (61603 primitive calls) in 0.042 seconds
+
+   Ordered by: internal time
+   List reduced from 1057 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.002    0.002    0.002    0.002 {built-in method _pickle.load}
+12013/11881    0.002    0.000    0.003    0.000 {built-in method builtins.isinstance}
+  115/114    0.001    0.000    0.008    0.000 series.py:392(__init__)
+       38    0.001    0.000    0.001    0.000 fromnumeric.py:69(_wrapreduction)
+      265    0.001    0.000    0.001    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      159    0.001    0.000    0.003    0.000 construction.py:517(sanitize_array)
+4588/3658    0.001    0.000    0.001    0.000 {built-in method builtins.len}
+       36    0.001    0.000    0.001    0.000 object_array.py:46(_str_map)
+      423    0.000    0.000    0.001    0.000 config.py:127(_get_single_key)
+      195    0.000    0.000    0.001    0.000 generic.py:281(__init__)
+       37    0.000    0.000    0.004    0.000 format.py:1343(get_result_as_array)
+      117    0.000    0.000    0.001    0.000 generic.py:6258(__finalize__)
+        1    0.000    0.000    0.001    0.001 _dispatcher.py:188(compute)
+     1596    0.000    0.000    0.001    0.000 generic.py:42(_instancecheck)
+      555    0.000    0.000    0.001    0.000 re.py:288(_compile)
+     1596    0.000    0.000    0.001    0.000 generic.py:37(_check)
+      302    0.000    0.000    0.001    0.000 generic.py:6323(__setattr__)
+2813/2812    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+      423    0.000    0.000    0.000    0.000 config.py:635(_get_root)
+      421    0.000    0.000    0.002    0.000 config.py:145(_get_option)
+       58    0.000    0.000    0.001    0.000 base.py:3962(_get_indexer)
+       41    0.000    0.000    0.001    0.000 cast.py:123(maybe_convert_platform)
+       37    0.000    0.000    0.001    0.000 base.py:475(__new__)
+      140    0.000    0.000    0.000    0.000 numeric.py:290(full)
+  373/331    0.000    0.000    0.000    0.000 {built-in method numpy.asarray}
+       47    0.000    0.000    0.000    0.000 cast.py:1166(maybe_infer_to_datetimelike)
+       85    0.000    0.000    0.001    0.000 format.py:1726(_make_fixed_width)
+       36    0.000    0.000    0.000    0.000 accessor.py:210(_validate)
+        1    0.000    0.000    0.000    0.000 c_parser_wrapper.py:222(read)
+      259    0.000    0.000    0.001    0.000 format.py:1819(should_trim)
+
+
+
+====================================================================================================
+AGGREGATE OF 50 CALLS (sorted by cumulative, top 30)
+====================================================================================================
+         3136501 function calls (3080101 primitive calls) in 1.973 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1057 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       50    0.001    0.000    1.975    0.040 profile_predict.py:144(call)
+       50    0.001    0.000    1.974    0.039 runners.py:8(run)
+      150    0.001    0.000    1.961    0.013 base_events.py:613(run_until_complete)
+      150    0.001    0.000    1.958    0.013 base_events.py:589(run_forever)
+      300    0.001    0.000    1.956    0.007 base_events.py:1832(_run_once)
+      300    0.000    0.000    1.954    0.007 events.py:78(_run)
+      300    0.003    0.000    1.953    0.007 {method 'run' of '_contextvars.Context' objects}
+       50    0.004    0.000    1.948    0.039 endpoints.py:30(predict)
+       50    0.000    0.000    1.462    0.029 {built-in method builtins.print}
+       50    0.000    0.000    1.461    0.029 frame.py:1208(__repr__)
+       50    0.000    0.000    1.458    0.029 _decorators.py:325(wrapper)
+       50    0.001    0.000    1.457    0.029 frame.py:1314(to_string)
+       50    0.000    0.000    1.451    0.029 format.py:939(to_string)
+       50    0.000    0.000    1.449    0.029 string.py:28(to_string)
+       50    0.000    0.000    1.449    0.029 string.py:40(_get_string_representation)
+       50    0.008    0.000    0.980    0.020 string.py:153(_fit_strcols_to_terminal_width)
+      100    0.000    0.000    0.566    0.006 string.py:34(_get_strcols)
+      100    0.001    0.000    0.563    0.006 format.py:472(get_strcols)
+      100    0.011    0.000    0.557    0.006 format.py:704(_get_strcols_without_index)
+       50    0.005    0.000    0.478    0.010 string.py:163(<listcomp>)
+     2000    0.008    0.000    0.468    0.000 format.py:751(format_col)
+5750/5700    0.044    0.000    0.359    0.000 series.py:392(__init__)
+     2100    0.009    0.000    0.316    0.000 format.py:1079(format_array)
+     1450    0.004    0.000    0.303    0.000 generic.py:4779(drop)
+     1450    0.009    0.000    0.296    0.000 generic.py:4818(_drop_axis)
+     1400    0.002    0.000    0.288    0.000 series.py:5278(drop)
+     2100    0.003    0.000    0.281    0.000 format.py:1193(get_result)
+     1800    0.003    0.000    0.256    0.000 accessor.py:3076(len)
+     1850    0.004    0.000    0.208    0.000 format.py:1471(_format_strings)
+     1850    0.021    0.000    0.204    0.000 format.py:1343(get_result_as_array)
+
+
+
+====================================================================================================
+AGGREGATE OF 50 CALLS (sorted by tottime, top 30)
+====================================================================================================
+         3136501 function calls (3080101 primitive calls) in 1.973 seconds
+
+   Ordered by: internal time
+   List reduced from 1057 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+600650/594050    0.090    0.000    0.151    0.000 {built-in method builtins.isinstance}
+     1800    0.064    0.000    0.102    0.000 object_array.py:46(_str_map)
+       50    0.044    0.001    0.046    0.001 {built-in method _pickle.load}
+5750/5700    0.044    0.000    0.359    0.000 series.py:392(__init__)
+    13250    0.040    0.000    0.040    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+     7950    0.034    0.000    0.147    0.000 construction.py:517(sanitize_array)
+       50    0.032    0.001    0.039    0.001 _dispatcher.py:188(compute)
+229400/182900    0.031    0.000    0.043    0.000 {built-in method builtins.len}
+    21150    0.023    0.000    0.055    0.000 config.py:127(_get_single_key)
+    79800    0.021    0.000    0.050    0.000 generic.py:42(_instancecheck)
+     1850    0.021    0.000    0.204    0.000 format.py:1343(get_result_as_array)
+    27750    0.021    0.000    0.028    0.000 re.py:288(_compile)
+    79800    0.020    0.000    0.028    0.000 generic.py:37(_check)
+     5850    0.020    0.000    0.029    0.000 generic.py:6258(__finalize__)
+    15100    0.019    0.000    0.049    0.000 generic.py:6323(__setattr__)
+     9750    0.018    0.000    0.025    0.000 generic.py:281(__init__)
+140650/140600    0.017    0.000    0.019    0.000 {built-in method builtins.getattr}
+    21150    0.015    0.000    0.019    0.000 config.py:635(_get_root)
+    21050    0.014    0.000    0.088    0.000 config.py:145(_get_option)
+     2900    0.014    0.000    0.026    0.000 base.py:3962(_get_indexer)
+     1850    0.013    0.000    0.070    0.000 base.py:475(__new__)
+     2350    0.013    0.000    0.020    0.000 cast.py:1166(maybe_infer_to_datetimelike)
+18650/16550    0.013    0.000    0.020    0.000 {built-in method numpy.asarray}
+       50    0.013    0.000    0.023    0.000 c_parser_wrapper.py:222(read)
+     7000    0.013    0.000    0.021    0.000 numeric.py:290(full)
+     2050    0.012    0.000    0.027    0.000 cast.py:123(maybe_convert_platform)
+     1400    0.012    0.000    0.014    0.000 _function_base_impl.py:5272(delete)
+     3050    0.012    0.000    0.158    0.000 base.py:3827(get_indexer)
+    36400    0.012    0.000    0.012    0.000 config.py:649(_get_deprecated_option)
+    12950    0.012    0.000    0.060    0.000 format.py:1819(should_trim)
+
+
+
+====================================================================================================
+STEP TIMINGS WITHOUT PROFILER (median of 50 iterations after 1 warm-up, ms)
+OMP_NUM_THREADS=(unset)
+====================================================================================================
+1 open + pickle.load model.pkl                                 0.91
+2 open + json.load model_features.json                         0.11
+3 pd.DataFrame([features.dict()])                              0.44
+4 pd.read_csv zipcode_demographics.csv                         1.86
+5 filter zipcode + drop + reset_index                          0.55
+6 pd.concat(axis=1)                                            0.19
+7 print(DataFrame) (formatting; stdout redirected)            15.54
+8 select model_features                                        0.31
+9 model.predict                                                1.84
+sum of step medians                                           21.74

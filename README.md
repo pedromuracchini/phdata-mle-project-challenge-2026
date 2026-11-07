@@ -22,7 +22,7 @@ mle-project-challenge-2026
 ├── requirements.txt            # Project dependencies
 ├── Dockerfile                  # Docker instructions for deployment
 ├── README.md                   # Project documentation
-└── test
+└── tests
     └── test_api.py            # Test cases for the API
 ```
 
@@ -121,13 +121,13 @@ make test-all
 
 ### Test Types
 
-**Unit Tests** (`test/unit/`)
+**Unit Tests** (`tests/unit/`)
 - Use FastAPI TestClient for in-process testing
 - No external dependencies or containers required
 - Fast execution (typically under 30 seconds)
 - Ideal for rapid development iteration
 
-**Integration Tests** (`test/integration/`)
+**Integration Tests** (`tests/integration/`)
 - Test against a real running API container
 - Verify end-to-end functionality via HTTP requests
 - Ensure Docker networking and orchestration work correctly
@@ -143,7 +143,7 @@ make test-unit
 
 This command:
 - Builds the test Docker image
-- Runs only tests in `test/unit/` directory
+- Runs only tests in `tests/unit/` directory
 - Generates coverage reports
 - Completes quickly without starting the full API container
 
@@ -156,7 +156,7 @@ make test-integration
 This command:
 - Builds both API and test containers using Docker Compose
 - Starts the API container and waits for health check
-- Runs tests in `test/integration/` directory
+- Runs tests in `tests/integration/` directory
 - Automatically stops and removes containers when complete
 
 #### All Tests
@@ -183,12 +183,12 @@ Coverage is automatically displayed in the terminal after test execution.
 
 Run a specific test file:
 ```bash
-docker run --rm ml-api-test pytest test/unit/test_api_unit.py -v
+docker run --rm ml-api-test pytest tests/unit/test_api_unit.py -v
 ```
 
 Run a specific test function:
 ```bash
-docker run --rm ml-api-test pytest test/unit/test_api_unit.py::test_predict_endpoint -v
+docker run --rm ml-api-test pytest tests/unit/test_api_unit.py::test_predict_endpoint -v
 ```
 
 Run tests matching a pattern:
@@ -267,7 +267,7 @@ This removes:
 
 For rapid development iteration:
 
-1. Make code changes in `src/` or test changes in `test/`
+1. Make code changes in `src/` or test changes in `tests/`
 2. Run unit tests: `make test-unit`
 3. Fix any issues and repeat
 4. Before committing, run full suite: `make test-all`
