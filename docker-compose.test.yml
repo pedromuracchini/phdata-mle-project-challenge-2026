@@ -7,9 +7,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    volumes:
-      - ./src/model:/app/model:ro
-      - ./src/data:/app/data:ro
+    # No volumes: the test runs against the model and data baked into the image.
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s
@@ -28,10 +26,11 @@ services:
         condition: service_healthy
     environment:
       - API_BASE_URL=http://api:8000
+    # Host user (passed by the Makefile) so files in test-results/ are not owned by root.
+    user: "${HOST_USER:-1000:1000}"
+    # Only the output directory is mounted; tests and src come from the image (built with --build).
     volumes:
       - ./test-results:/app/test-results
-      - ./tests:/app/tests:ro
-      - ./src:/app/src:ro
     command: pytest tests/integration -v
     networks:
       - test-network
