@@ -751,6 +751,12 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
+test = [
+    { name = "httpx" },
+    { name = "hypothesis" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -773,6 +779,12 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff", specifier = "==0.17.4" },
+]
+test = [
+    { name = "httpx" },
+    { name = "hypothesis" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 
 [[package]]

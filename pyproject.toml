@@ -21,11 +21,16 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
+# What the test suite needs at runtime; Dockerfile.test installs only this group.
+test = [
     "pytest",
     "pytest-cov",
     "httpx",
     "hypothesis",
+]
+# Local development (`uv sync` installs it by default): tests plus lint/type/hook tools.
+dev = [
+    { include-group = "test" },
     # Exact: must match the revs in .pre-commit-config.yaml; bump them together.
     "ruff==0.17.4",
     "mypy==2.4.1",

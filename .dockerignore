@@ -1,0 +1,23 @@
+# Keep the build context small and free of local state. The Dockerfiles copy only
+# src/, tests/, pytest.ini and the lock inputs (pyproject.toml, uv.lock, .python-version).
+.git/
+.venv/
+**/__pycache__/
+*.py[cod]
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+test-results/
+htmlcov/
+.coverage
+.coverage.*
+bench-results/
+profiles/
+*.prof
+*.pstats
+.ipynb_checkpoints/
+
+# Secrets never enter an image.
+.env
+.env.*

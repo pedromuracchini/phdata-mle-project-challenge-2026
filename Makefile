@@ -5,9 +5,13 @@
 test-build:
 	docker build -f Dockerfile.test -t ml-api-test .
 
+# Run test containers as the host user so files written to test-results/ stay yours.
+HOST_USER := $(shell id -u):$(shell id -g)
+
 # Run unit tests only (fast, no Docker Compose)
 test-unit: test-build
 	docker run --rm \
+		--user $(HOST_USER) \
 		-v $(PWD)/test-results:/app/test-results \
 		ml-api-test pytest tests/unit -v
 
@@ -21,6 +25,7 @@ test-all: test-build
 	docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
 	@echo "Running unit tests..."
 	docker run --rm \
+		--user $(HOST_USER) \
 		-v $(PWD)/test-results:/app/test-results \
 		ml-api-test pytest tests/unit -v
 
@@ -61,6 +66,7 @@ test: test-hooks
 # tests/fixtures/baseline_predictions.json with the image's (locked) library versions.
 test-docker: test-build
 	docker run --rm \
+		--user $(HOST_USER) \
 		-v $(PWD)/test-results:/app/test-results \
 		ml-api-test pytest $(CHARACTERIZATION_TEST)
 
