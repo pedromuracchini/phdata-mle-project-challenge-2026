@@ -2,12 +2,18 @@ import pytest
 from fastapi.testclient import TestClient
 import httpx
 import os
+from pathlib import Path
+
+# The app opens model/ and data/ relative to the working directory (they sit under src/).
+# Until config moves to src/core/config.py, run the in-process tests from src/.
+SRC_DIR = Path(__file__).resolve().parent.parent / "src"
 
 
 @pytest.fixture
-def test_client():
+def test_client(monkeypatch):
     """Fixture for unit tests using FastAPI TestClient."""
-    from src.main import app
+    from main import app
+    monkeypatch.chdir(SRC_DIR)
     return TestClient(app)
 
 

@@ -30,6 +30,8 @@ dev = [
     "ruff==0.17.4",
     "mypy==2.4.1",
     "pre-commit",
+    # Type information for pandas (pandas ships none); keep on the same release line as pandas.
+    "pandas-stubs==2.3.3.260113",
 ]
 
 [tool.uv]
@@ -77,9 +79,6 @@ strict = true
 # Source modules import each other as top-level packages (`from api.endpoints import ...`).
 mypy_path = "src"
 explicit_package_bases = true
-# Runtime deps (fastapi, pandas, ...) are not installed on the host until Phase 2 (uv).
-# Remove this then, so third-party types are checked instead of treated as Any.
-ignore_missing_imports = true
 
 # Same exclusions as ruff above. An override (rather than `exclude`) also applies when
 # pre-commit passes the file explicitly. Remove each module when its file is rewritten.
@@ -94,8 +93,7 @@ module = [
 ]
 ignore_errors = true
 
-# pytest is not installed on the host until Phase 2, so its decorators are Any and every
-# parametrized test would be reported as untyped. Remove with `ignore_missing_imports`.
+# scikit-learn ships no type information and no stubs package exists, so its API is Any.
 [[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_decorators = false
+module = ["sklearn", "sklearn.*"]
+ignore_missing_imports = true

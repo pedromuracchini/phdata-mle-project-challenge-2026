@@ -30,8 +30,9 @@ clean:
 	rm -rf test-results/*
 
 # ---------------------------------------------------------------------------
-# Standard targets used by CLAUDE.md and CI. Phase 0 runs them on the current
-# tooling (pip + Docker); Phase 2 moves them to uv.
+# Standard targets used by CLAUDE.md and CI. Everything runs through uv against
+# uv.lock (--frozen: fail instead of silently re-resolving), so the host and the
+# Docker images use the same versions.
 # ---------------------------------------------------------------------------
 
 IMAGE ?= mle-project-challenge-2026
@@ -44,48 +45,50 @@ require = @command -v $(1) >/dev/null 2>&1 || { \
 	echo "error: '$(1)' not found on PATH. Install it, then re-run 'make $@'." >&2; \
 	exit 1; }
 
-# Install dependencies. They live in the Docker test image, not on the host:
-# requirements.txt is unpinned, and model.pkl needs the scikit-learn version
-# that the image's Python 3.10 resolves to.
-setup: test-build
+UV_RUN = uv run --frozen
 
-# Hook tests, the unit tests and the characterization test, all but the hooks in Docker.
-test: test-hooks test-unit test-docker
+# Install Python (.python-version) and the locked runtime + dev dependencies into .venv.
+setup:
+	$(call require,uv)
+	uv sync --frozen
 
-# Characterization test: complete requests must reproduce tests/fixtures/baseline_predictions.json.
-# Runs in the test image because the baseline was recorded with the image's library versions;
-# the host does not have them (and does not have pytest) until Phase 2.
+# Hook tests, unit tests and the characterization test, on the host through uv.
+test: test-hooks
+	$(call require,uv)
+	$(UV_RUN) pytest tests/unit $(CHARACTERIZATION_TEST)
+
+# Characterization test inside the test image: complete requests must reproduce
+# tests/fixtures/baseline_predictions.json with the image's (locked) library versions.
 test-docker: test-build
 	docker run --rm \
 		-v $(PWD)/test-results:/app/test-results \
 		ml-api-test pytest $(CHARACTERIZATION_TEST)
 
-# Tests for the Claude Code hooks; standard library only, runs on the host.
+# Tests for the Claude Code hooks (standard library only).
 test-hooks:
-	$(call require,python3)
-	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s .claude/hooks -v
+	$(call require,uv)
+	PYTHONDONTWRITEBYTECODE=1 $(UV_RUN) python -m unittest discover -s .claude/hooks -v
 
 lint:
-	$(call require,ruff)
-	ruff check .
-	ruff format --check .
+	$(call require,uv)
+	$(UV_RUN) ruff check .
+	$(UV_RUN) ruff format --check .
 
-# Two runs: tests/conftest.py imports `src.main`, which mypy would otherwise also find as
-# `main` (mypy_path = src) and reject as the same file under two module names.
+# Keep in sync with the mypy hook in .pre-commit-config.yaml (same command, same files).
+TYPECHECK_PATHS = src .claude/hooks scripts tests
 typecheck:
-	$(call require,mypy)
-	mypy src .claude/hooks
-	mypy scripts tests
+	$(call require,uv)
+	$(UV_RUN) mypy $(TYPECHECK_PATHS)
 
 # Benchmark a service that is already running (e.g. `make docker-run` in another terminal).
 # Fixed load profile: see scripts/benchmark.py. Results land in bench-results/ (gitignored);
-# copy the ones worth keeping to docs/benchmarks/. Standard library only, runs on the host.
+# copy the ones worth keeping to docs/benchmarks/. The client is standard library only.
 BENCH_URL ?= http://localhost:$(PORT)
 BENCH_OUTPUT ?= bench-results/bench-$(shell date -u +%Y%m%dT%H%M%SZ).json
 bench:
-	$(call require,python3)
+	$(call require,uv)
 	@mkdir -p $(dir $(BENCH_OUTPUT))
-	python3 scripts/benchmark.py --base-url $(BENCH_URL) --output $(BENCH_OUTPUT)
+	$(UV_RUN) python scripts/benchmark.py --base-url $(BENCH_URL) --output $(BENCH_OUTPUT)
 
 docker-build:
 	docker build -t $(IMAGE) .
@@ -107,8 +110,8 @@ help:
 	@echo "  help              - Display this help message"
 	@echo ""
 	@echo "Standard targets:"
-	@echo "  setup             - Install dependencies (builds the Docker test image)"
-	@echo "  test              - Run hook, unit and characterization tests"
+	@echo "  setup             - Install Python and locked dependencies with uv"
+	@echo "  test              - Run hook, unit and characterization tests (uv)"
 	@echo "  test-hooks        - Run tests for the Claude Code hooks"
 	@echo "  test-docker       - Run the characterization test in Docker"
 	@echo "  lint              - Run ruff lint and format check"
