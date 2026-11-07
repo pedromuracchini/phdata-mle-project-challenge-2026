@@ -1,16 +1,20 @@
-# Versions match the tools used by `make lint` and `make typecheck`; bump them together.
 # Settings live in pyproject.toml, so the hooks and the Makefile check the same rules.
 repos:
+  # ruff rev must match the ruff==X pin in pyproject.toml (dev group); bump them together.
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.4
     hooks:
       - id: ruff-check
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.4.1
+  # mypy runs from the project's .venv (locked mypy + the real runtime deps and stubs),
+  # with the same command and paths as `make typecheck` (TYPECHECK_PATHS in the Makefile).
+  # It checks the whole tree, not the staged files: types cross file boundaries.
+  - repo: local
     hooks:
       - id: mypy
-        # Same scope as `make typecheck`; the default args would override pyproject.toml.
-        files: ^(src|\.claude/hooks)/
-        args: []
+        name: mypy
+        entry: uv run --frozen mypy src .claude/hooks scripts tests
+        language: system
+        types: [python]
+        pass_filenames: false
