@@ -1,0 +1,39 @@
+# Claude Code: personal settings (shared settings.json is committed)
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Secrets: never commit. A committed .env.example documents the variables.
+.env
+.env.*
+!.env.example
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# Test output (the Docker test run writes coverage here, owned by root)
+test-results/
+.coverage
+.coverage.*
+htmlcov/
+
+# Profiling output (cProfile, py-spy)
+*.prof
+*.pstats
+*.speedscope.json
+profiles/
+
+# Local benchmark dumps. Results worth keeping go in docs/benchmarks/, which is tracked.
+.benchmarks/
+bench-results/
+
+# Jupyter
+.ipynb_checkpoints/
+# Written by the imputation notebook when it runs
+notebooks/imputation_comparison_results.csv
