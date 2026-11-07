@@ -22,6 +22,16 @@ PROTECTED = {"main", "master"}
 CONVENTIONAL = re.compile(
     r"^(feat|fix|perf|test|build|docs|chore|refactor|ci|style|revert)(\([\w\-./]+\))?!?: \S.{0,70}$"
 )
+SEPARATOR_CHARS = ";&|\n"
+HEREDOC = re.compile(r"(?<!<)<<-?(?!<)\s*['\"]?(?P<delimiter>[\w.-]+)['\"]?")
+GLOBAL_OPTIONS_WITH_VALUE = {
+    "-C",
+    "-c",
+    "--git-dir",
+    "--work-tree",
+    "--namespace",
+    "--config-env",
+}
 
 
 def block(reason: str) -> None:
@@ -29,10 +39,11 @@ def block(reason: str) -> None:
     sys.exit(2)
 
 
-def current_branch(cwd: str | None) -> str:
+def current_branch(cwd: str | None, global_options: list[str]) -> str:
+    """Return the branch the command would act on, honouring e.g. `git -C <path>`."""
     try:
         out = subprocess.run(
-            ["git", "branch", "--show-current"],
+            ["git", *global_options, "branch", "--show-current"],
             cwd=cwd,
             capture_output=True,
             text=True,
@@ -44,17 +55,61 @@ def current_branch(cwd: str | None) -> str:
         return ""
 
 
-def git_segments(command: str) -> list[list[str]]:
-    """Split a shell command on && ; || | and return the git invocations."""
-    segments = re.split(r"&&|\|\||;|\|", command)
+def strip_heredocs(command: str) -> str:
+    """Remove heredoc bodies, which are data rather than commands.
+
+    A heredoc with no closing delimiter is left in place, so its text is still checked.
+    """
+    lines = command.split("\n")
+    kept: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        kept.append(line)
+        i += 1
+        match = HEREDOC.search(line)
+        if match is None:
+            continue
+        delimiter = match.group("delimiter")
+        for j in range(i, len(lines)):
+            if lines[j].strip() == delimiter:
+                i = j + 1
+                break
+    return "\n".join(kept)
+
+
+def split_commands(command: str) -> list[list[str]]:
+    """Tokenize a shell command, splitting on separators outside quotes only."""
+    text = strip_heredocs(command).replace("\\\n", " ")
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=SEPARATOR_CHARS)
+    lexer.whitespace = " \t\r"
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        # Unparseable, e.g. unbalanced quotes: split naively so it is still checked.
+        return [seg.split() for seg in re.split(r"&&|\|\||[;|\n]", text)]
+
+    commands: list[list[str]] = [[]]
+    for token in tokens:
+        if set(token) <= set(SEPARATOR_CHARS):
+            commands.append([])
+        else:
+            commands[-1].append(token)
+    return commands
+
+
+def git_invocations(command: str) -> list[tuple[list[str], list[str]]]:
+    """Return (global options, subcommand and its arguments) for each git command."""
     result = []
-    for seg in segments:
-        try:
-            tokens = shlex.split(seg)
-        except ValueError:
-            tokens = seg.split()
-        if tokens and tokens[0] == "git":
-            result.append(tokens[1:])
+    for tokens in split_commands(command):
+        if not tokens or tokens[0] != "git":
+            continue
+        i = 1
+        while i < len(tokens) and tokens[i].startswith("-"):
+            i += 2 if tokens[i] in GLOBAL_OPTIONS_WITH_VALUE else 1
+        result.append((tokens[1:i], tokens[i:]))
     return result
 
 
@@ -78,13 +133,13 @@ def main() -> None:
     command = payload.get("tool_input", {}).get("command", "")
     cwd = payload.get("cwd")
 
-    for args in git_segments(command):
+    for global_options, args in git_invocations(command):
         if not args:
             continue
         sub = args[0]
 
         if sub == "commit":
-            branch = current_branch(cwd)
+            branch = current_branch(cwd, global_options)
             if branch in PROTECTED:
                 block(
                     f"commits on '{branch}' are not allowed. "
@@ -103,12 +158,12 @@ def main() -> None:
             for ref in refs:
                 dest = ref.split(":")[-1].removeprefix("refs/heads/")
                 if dest == "HEAD":
-                    dest = current_branch(cwd)
+                    dest = current_branch(cwd, global_options)
                 if dest in PROTECTED:
                     block(
                         f"pushing to '{dest}' is not allowed; open a pull request instead."
                     )
-            if not refs and current_branch(cwd) in PROTECTED:
+            if not refs and current_branch(cwd, global_options) in PROTECTED:
                 block("pushing from main/master is not allowed; push the phase branch.")
 
     sys.exit(0)
