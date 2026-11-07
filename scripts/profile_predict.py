@@ -28,7 +28,7 @@ import platform
 import pstats
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -170,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     header = "\n".join(
         [
             f"cProfile of the POST /predict handler ({__file__})",
-            f"generated_at: {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
+            f"generated_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}",
             f"python: {platform.python_version()}  cwd: {os.getcwd()}",
             f"OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS', '(unset)')}  "
             f"cpu_count={os.cpu_count()}",

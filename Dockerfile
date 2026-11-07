@@ -3,8 +3,8 @@
 # layer cache installs exactly the same versions. Keep the base image and uv in sync with
 # Dockerfile.test, .python-version and [tool.uv] required-version in pyproject.toml.
 
-# python:3.10.22-slim-trixie, pinned by digest: the tag alone can be re-pointed.
-ARG PYTHON_IMAGE=python:3.10.22-slim-trixie@sha256:6ff506466f8b1e981719b468cc0023b8ef000b983cdec0eafe119d01f379e31d
+# python:3.12.16-slim-trixie, pinned by digest: the tag alone can be re-pointed.
+ARG PYTHON_IMAGE=python:3.12.16-slim-trixie@sha256:4840d514c583a4d3d8cad3940e68dee6f0f6f3635c12fcd0a3d74c21a5b93a54
 
 FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 

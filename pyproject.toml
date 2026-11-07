@@ -5,7 +5,7 @@
 name = "sound-realty-price-api"
 version = "0.1.0"
 description = "House-price prediction REST API for Sound Realty (Seattle area)."
-requires-python = "==3.10.*"
+requires-python = "==3.12.*"
 dependencies = [
     "fastapi",
     "uvicorn",
@@ -46,8 +46,8 @@ package = false
 required-version = "==0.13.7"
 
 [tool.ruff]
-# The service runs on python:3.10-slim today. Raise this when the image moves to 3.11+.
-target-version = "py310"
+# Same Python as .python-version and the images (python:3.12.16-slim-trixie).
+target-version = "py312"
 line-length = 100
 extend-exclude = [
     # The data science team's research record: we read it, we don't edit it.
@@ -79,7 +79,7 @@ select = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 # Source modules import each other as top-level packages (`from api.endpoints import ...`).
 mypy_path = "src"
