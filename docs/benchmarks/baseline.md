@@ -74,9 +74,10 @@ Facts measured during this phase. Nothing was changed.
 2. **Container CPU is ~260 % under that load**, not ~100 %. The worker process has 38 threads;
    besides the event loop, several threads each used ~24 % of a core. `threadpoolctl` inside the
    image shows a 16-thread OpenMP pool (scikit-learn's `libgomp`) and two 16-thread OpenBLAS
-   pools; the KNN uses `_fit_method == "brute"`. The extra threads match the OpenMP pool that
-   brute-force distance computation runs on, but the profile is where this is confirmed (see the
-   profile section).
+   pools; the KNN uses `_fit_method == "brute"`. The same container started with only
+   `-e OMP_NUM_THREADS=1` (600 requests, M = 8) used **100 %** CPU at the **same 42.4 req/s**
+   (p50 187.7 ms): the OpenMP pool burns ~1.6 cores without adding throughput (see the profile
+   section, bottleneck 4).
 3. **Keep-alive connections add ~44 ms per request when the server is idle.** One client on a
    keep-alive connection: p50 68 ms. A new connection per request (`curl`, or `http.client` from
    inside the container): ~23–24 ms. The same 68 ms appears from inside the container (so not the
@@ -86,6 +87,68 @@ Facts measured during this phase. Nothing was changed.
    ACKs; **root cause not confirmed**. At M = 8 it is hidden behind queueing, but it will set a
    latency floor once per-request work drops in Phase 4.
 
-## Profile
+## Profile of one `/predict` request
 
-Added in the next commit.
+Tool: **cProfile** (standard library, nothing to install, no `SYS_PTRACE` needed as py-spy
+would be). Script: [`scripts/profile_predict.py`](../../scripts/profile_predict.py), run inside
+`mle-api:v0-original` from `/app` so relative paths resolve as in production:
+
+```sh
+docker run --rm -w /app --user "$(id -u):$(id -g)" \
+  -v "$PWD/scripts:/scripts:ro" -v "$PWD/docs/benchmarks:/out" \
+  mle-api:v0-original python /scripts/profile_predict.py --out-dir /out
+```
+
+It calls the real route function `api.endpoints.predict` with the reference payload (zipcode
+`98042`): 1 warm-up call, then **1 profiled call**, then an aggregate over 50 calls. It also times
+each handler step **without** the profiler (median of 50), because cProfile inflates pure-Python
+code such as pandas formatting (handler ≈ 40 ms under the profiler vs ≈ 22 ms without).
+Scope: the handler body only; FastAPI validation and uvicorn's HTTP handling are not included.
+
+Full output: [`baseline-profile.txt`](baseline-profile.txt) (pstats by cumulative and internal
+time, single call and aggregate, plus step timings). The raw `.prof` files are gitignored;
+regenerate them with the command above.
+
+### Where the time goes (no profiler, median of 50, ms)
+
+| # | Step (`src/api/endpoints.py`) | Line | ms | Share |
+| --- | --- | --- | ---: | ---: |
+| 7 | `print(input_data)`: pandas formats the 1×34 DataFrame to a string | 49 | **15.54** | **71 %** |
+| 4 | `pd.read_csv` of `zipcode_demographics.csv` (disk read + parse) | 42 | 1.86 | 9 % |
+| 9 | `model.predict` (RobustScaler + brute-force KNN over the training set) | 55 | 1.84 | 8 % |
+| 1 | `open` + `pickle.load` of `model.pkl` (disk read + unpickle) | 33-34 | 0.91 | 4 % |
+| 5 | zipcode filter + `drop` + `reset_index` on the full demographics table | 43-45 | 0.55 | 3 % |
+| 3 | `pd.DataFrame([home_features.dict()])` | 39 | 0.44 | 2 % |
+| 8 | `input_data[model_features]` | 52 | 0.31 | 1 % |
+| 6 | `pd.concat(axis=1)` | 48 | 0.19 | 1 % |
+| 2 | `open` + `json.load` of `model_features.json` | 36-37 | 0.11 | <1 % |
+| | **Sum** | | **21.74** | |
+
+The sum (~22 ms) matches the ~24 ms of server time per request implied by the benchmark
+(1000 / 42.3 req/s); the remaining ~2 ms is request parsing, validation and HTTP handling.
+The cProfile run agrees on the ranking: `builtins.print` → `DataFrame.__repr__` →
+`to_string` is 29 of 39 ms cumulative under the profiler.
+
+### Bottlenecks, in order of cost
+
+Not fixed in this phase. For Phase 4, one optimization per commit, measured with `make bench`.
+
+1. **`print(DataFrame)` on every request: ~15.5 ms, 71 % of handler time.** Formatting a
+   34-column frame for stdout (including fitting columns to terminal width) costs far more than
+   the prediction itself. It is also unstructured logging (Phase 5 replaces it with JSON logs).
+2. **Per-request disk reads and parsing: ~2.9 ms, 13 %.** `read_csv` of the demographics
+   (1.86 ms), unpickling the model (0.91 ms), loading the feature list (0.11 ms), plus 0.55 ms
+   filtering the full demographics table instead of a precomputed `zipcode -> row` lookup.
+   CLAUDE.md requires loading these once in `lifespan`.
+3. **All work runs on the event loop (`async def` route).** Requests are fully serialized:
+   1 core at 100 %, p50 = 8 × service time at M = 8. Moving the CPU-bound handler to a `def` route
+   (threadpool) is required by CLAUDE.md; whether it raises throughput depends on how much of
+   the work releases the GIL, so it must be measured, not assumed.
+4. **OpenMP thread pool sized to all 16 CPUs for a 1-row prediction.** `model.predict` takes
+   1.84 ms with the default pool and 2.04 ms with `OMP_NUM_THREADS=1` (no latency benefit), while
+   the default pool raises container CPU from 100 % to ~260 % at the same throughput. That is
+   wasted CPU, and it would compete with request threads once the route uses a threadpool.
+5. **Keep-alive latency floor of ~44 ms** (observation 3 above): not CPU, not visible in the
+   profile, but it will dominate single-client latency once items 1–2 are gone.
+6. **Smaller pandas overheads (~1 ms):** building a DataFrame from a dict, `concat` and column
+   selection for a single row. Worth revisiting only after items 1–4.
