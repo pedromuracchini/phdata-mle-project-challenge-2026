@@ -14,7 +14,17 @@ from sklearn.metrics.pairwise import nan_euclidean_distances
 
 from core.artifacts import ImputerArtifact, load_imputer
 from core.config import SRC_DIR, get_settings
-from services.imputation import HOUSE_FEATURES, ImputationError, impute_missing, missing_fields
+from services.imputation import (
+    HOUSE_FEATURES,
+    SQFT_IDENTITY,
+    ImputationError,
+    fill_sqft_identity,
+    impute_missing,
+    missing_fields,
+)
+
+# Features filled only by KNN (the sqft ones go through the identity when missing alone).
+KNN_ONLY = tuple(f for f in HOUSE_FEATURES if f not in SQFT_IDENTITY)
 
 
 @pytest.fixture(scope="module")
@@ -91,7 +101,7 @@ def test_single_missing_field_is_filled_and_nothing_else_changes(
 
 
 @pytest.mark.parametrize("index", [ROW_IN_FIT_DATA, ROW_NOT_IN_FIT_DATA])
-@pytest.mark.parametrize("column", HOUSE_FEATURES)
+@pytest.mark.parametrize("column", KNN_ONLY)
 def test_imputed_value_matches_the_notebook_knn_by_hand(
     artifact: ImputerArtifact, unseen: pd.DataFrame, column: str, index: int
 ) -> None:
@@ -110,11 +120,11 @@ def test_a_row_in_the_fit_data_recovers_its_own_value(
     # Documents a property of the data (and why evaluation must not use these rows): a masked
     # value of a training row is recovered exactly from the row itself.
     complete = row(unseen, ROW_IN_FIT_DATA)
-    frame = row(unseen, ROW_IN_FIT_DATA, missing=("sqft_living",))
+    frame = row(unseen, ROW_IN_FIT_DATA, missing=("sqft_lot",))
 
     result = impute_missing(frame, artifact.imputer, artifact.columns)
 
-    assert result.features.loc[0, "sqft_living"] == complete.loc[0, "sqft_living"]
+    assert result.features.loc[0, "sqft_lot"] == complete.loc[0, "sqft_lot"]
 
 
 def test_all_house_features_missing_are_all_filled(
@@ -172,3 +182,107 @@ def test_service_does_not_import_fastapi() -> None:
     completed = subprocess.run([sys.executable, "-c", code], env=env, check=False)
 
     assert completed.returncode == 0
+
+
+# --- deterministic sqft fill -----------------------------------------------------------------
+
+
+def cell(frame: pd.DataFrame, column: str) -> float:
+    """The single row's value in ``column``, typed as float."""
+    return float(frame[column].to_numpy(dtype=float)[0])
+
+
+class NoKnn:
+    """Stands in for the imputer where KNN must not be reached."""
+
+    def transform(self, frame: pd.DataFrame) -> None:
+        raise AssertionError("KNN was called")
+
+
+class RecordingKnn:
+    """Wraps the real imputer and records what KNN received."""
+
+    def __init__(self, imputer: object) -> None:
+        self.imputer = imputer
+        self.received: list[pd.DataFrame] = []
+
+    def transform(self, frame: pd.DataFrame) -> object:
+        self.received.append(frame.copy())
+        return self.imputer.transform(frame)  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize("index", [ROW_IN_FIT_DATA, ROW_NOT_IN_FIT_DATA])
+@pytest.mark.parametrize("column", SQFT_IDENTITY)
+def test_one_missing_sqft_value_comes_from_the_identity_without_knn(
+    artifact: ImputerArtifact, unseen: pd.DataFrame, column: str, index: int
+) -> None:
+    complete = row(unseen, index)
+    frame = row(unseen, index, missing=(column,))
+
+    result = impute_missing(frame, NoKnn(), artifact.columns)
+
+    assert result.imputed_fields == [column]
+    pd.testing.assert_frame_equal(result.features, complete.astype("float64"), check_exact=True)
+
+
+def test_two_missing_sqft_values_go_to_knn(artifact: ImputerArtifact, unseen: pd.DataFrame) -> None:
+    knn = RecordingKnn(artifact.imputer)
+    frame = row(unseen, ROW_NOT_IN_FIT_DATA, missing=("sqft_above", "sqft_basement"))
+
+    result = impute_missing(frame, knn, artifact.columns)
+
+    assert result.imputed_fields == ["sqft_above", "sqft_basement"]
+    assert knn.received[0][["sqft_above", "sqft_basement"]].isna().all(axis=None)
+
+
+def test_identity_runs_before_knn_and_knn_sees_the_filled_value(
+    artifact: ImputerArtifact, unseen: pd.DataFrame
+) -> None:
+    knn = RecordingKnn(artifact.imputer)
+    complete = row(unseen, ROW_NOT_IN_FIT_DATA)
+    frame = row(unseen, ROW_NOT_IN_FIT_DATA, missing=("bedrooms", "sqft_basement"))
+
+    result = impute_missing(frame, knn, artifact.columns)
+
+    assert result.imputed_fields == ["bedrooms", "sqft_basement"]
+    sent = knn.received[0]
+    assert cell(sent, "sqft_basement") == cell(complete, "sqft_basement")
+    assert np.isnan(cell(sent, "bedrooms"))
+    assert cell(result.features, "sqft_basement") == cell(complete, "sqft_basement")
+
+
+def test_contradictory_sqft_values_fall_back_to_knn(
+    artifact: ImputerArtifact, unseen: pd.DataFrame
+) -> None:
+    # sqft_above larger than sqft_living: the identity would give a negative basement.
+    knn = RecordingKnn(artifact.imputer)
+    frame = row(unseen, ROW_NOT_IN_FIT_DATA, missing=("sqft_basement",))
+    frame.loc[0, "sqft_above"] = cell(frame, "sqft_living") + 100
+
+    result = impute_missing(frame, knn, artifact.columns)
+
+    assert len(knn.received) == 1
+    assert result.imputed_fields == ["sqft_basement"]
+    assert cell(result.features, "sqft_basement") >= 0
+
+
+def test_fill_sqft_identity_on_several_rows() -> None:
+    nan = np.nan
+    frame = pd.DataFrame(
+        {
+            "sqft_living": [nan, 2000.0, 2000.0, nan, 2000.0, 1000.0],
+            "sqft_above": [1500.0, nan, 1500.0, nan, 1500.0, 1500.0],
+            "sqft_basement": [500.0, 500.0, nan, 500.0, 500.0, nan],
+        }
+    )
+
+    filled = fill_sqft_identity(frame)
+
+    expected = pd.DataFrame(
+        {
+            "sqft_living": [2000.0, 2000.0, 2000.0, nan, 2000.0, 1000.0],
+            "sqft_above": [1500.0, 1500.0, 1500.0, nan, 1500.0, 1500.0],
+            "sqft_basement": [500.0, 500.0, 500.0, 500.0, 500.0, nan],  # last: would be -500
+        }
+    )
+    pd.testing.assert_frame_equal(filled, expected)

@@ -19,7 +19,7 @@ of train rows (leaked) and the rest, to show why that file is not used for the m
 Methods: ``median`` (SimpleImputer baseline), ``knn`` (the committed artifact: the notebook's
 KNNImputer(k=5, distance) on raw values) and candidate deviations, each on top of ``knn``:
 ``knn+scaled`` (RobustScaler fitted on train, KNN in scaled space), ``knn+sqft_fill``
-(sqft_living = sqft_above + sqft_basement when exactly one is missing), ``knn+rounding``
+(services.imputation.fill_sqft_identity, the served implementation, then KNN), ``knn+rounding``
 (bedrooms to integer, floors to 0.5, bathrooms to 0.25, clip at 0, on imputed cells), and
 ``all_candidates`` (the three together). Deterministic: no randomness besides the fixed split.
 
@@ -58,7 +58,7 @@ from core.imputer_artifact import (  # noqa: E402
     fit_imputer,
     load_model_split,
 )
-from services.imputation import HOUSE_FEATURES  # noqa: E402
+from services.imputation import HOUSE_FEATURES, fill_sqft_identity  # noqa: E402
 
 logger = logging.getLogger("evaluate_imputation")
 
@@ -66,7 +66,6 @@ DEFAULT_JSON = REPO_ROOT / "docs" / "imputation" / "evaluation_results.json"
 DEFAULT_MARKDOWN = REPO_ROOT / "docs" / "imputation" / "evaluation_tables.md"
 FUTURE_UNSEEN = SRC_DIR / "data" / "future_unseen_examples.csv"
 
-SQFT = ("sqft_living", "sqft_above", "sqft_basement")
 ROUNDING_STEP = {"bedrooms": 1.0, "floors": 0.5, "bathrooms": 0.25}
 ALL_FEATURES = "all 7 (zipcode only)"
 SCENARIOS: list[tuple[str, tuple[str, ...]]] = [(f, (f,)) for f in HOUSE_FEATURES] + [
@@ -100,20 +99,9 @@ def scaled_knn(x_train: pd.DataFrame) -> Imputer:
     return impute
 
 
-def sqft_fill(frame: pd.DataFrame) -> pd.DataFrame:
-    """sqft_living = sqft_above + sqft_basement, for rows where exactly one of them is missing."""
-    filled = frame.copy()
-    living, above, basement = (filled[c] for c in SQFT)
-    one_missing = filled[list(SQFT)].isna().sum(axis=1) == 1
-    filled.loc[one_missing & living.isna(), "sqft_living"] = above + basement
-    filled.loc[one_missing & above.isna(), "sqft_above"] = living - basement
-    filled.loc[one_missing & basement.isna(), "sqft_basement"] = living - above
-    return filled
-
-
 def with_sqft_fill(impute: Imputer) -> Imputer:
     def wrapped(frame: pd.DataFrame) -> pd.DataFrame:
-        filled = sqft_fill(frame)
+        filled = fill_sqft_identity(frame)
         return impute(filled) if filled.isna().to_numpy().any() else filled
 
     return wrapped

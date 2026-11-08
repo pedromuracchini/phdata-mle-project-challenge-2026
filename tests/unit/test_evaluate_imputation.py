@@ -1,4 +1,7 @@
-"""Helpers of scripts/evaluate_imputation.py (the candidate deviations it measures)."""
+"""Helpers of scripts/evaluate_imputation.py (the candidate deviations it measures).
+
+The sqft fill is the served implementation; its tests are in test_imputation.py.
+"""
 
 from __future__ import annotations
 
@@ -35,19 +38,6 @@ def house(**values: float) -> pd.DataFrame:
         "sqft_basement": 500.0,
     }
     return pd.DataFrame([base | values])
-
-
-@pytest.mark.parametrize("column", ["sqft_living", "sqft_above", "sqft_basement"])
-def test_sqft_fill_recovers_one_missing_value(evaluation: ModuleType, column: str) -> None:
-    filled = evaluation.sqft_fill(house(**{column: np.nan}))
-
-    pd.testing.assert_frame_equal(filled, house())
-
-
-def test_sqft_fill_leaves_two_missing_values_alone(evaluation: ModuleType) -> None:
-    frame = house(sqft_living=np.nan, sqft_basement=np.nan)
-
-    pd.testing.assert_frame_equal(evaluation.sqft_fill(frame), frame)
 
 
 def test_rounding_applies_only_to_imputed_cells(evaluation: ModuleType) -> None:

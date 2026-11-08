@@ -85,7 +85,12 @@ Complete-data MAPE on the evaluation rows: **17.77 %**. Headline numbers for the
 | **rounding** | MAE better for the discrete features (bedrooms 0.561 → 0.513, floors 0.197 → 0.178), NRMSE slightly worse, MAPE within ±0.1 pp (zipcode-only −0.5 pp). Imputed values become plausible (no 2.6 bedrooms), but the response doesn't expose them. | **Neutral on accuracy.** |
 | all three | Dominated by scaling's zipcode-only regression (MAPE 43.80 %). | Not a candidate as a bundle. |
 
-## Recommendation (for decision; not implemented)
+## Recommendation
+
+**Decision (human, Phase 3): adopt the sqft fill only.** Implemented in
+`services/imputation.py` (`fill_sqft_identity`, which the evaluation script also uses), and recorded in
+[ADR 003](adr/003-imputation-design.md). Items 2–4 are not implemented.
+
 
 1. **Adopt the sqft fill.** It's the only candidate that strictly improves on the faithful
    imputer, removes the cost of a missing sqft feature entirely, and can't make anything worse.

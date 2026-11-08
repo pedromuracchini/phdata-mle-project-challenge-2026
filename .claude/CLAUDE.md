@@ -67,21 +67,24 @@ them fails.
 Phase 3 decision: **faithful to the notebook first**. The KNN configuration comes from
 `notebooks/imputation_experiment.ipynb` (`KNNImputer(n_neighbors=5, weights="distance")`, raw
 values, no scaling), fitted on the 33 model features (house fields + zipcode demographics) of
-the model's train split. Anything the notebook does not do is a *candidate*, adopted only if
-`scripts/evaluate_imputation.py` shows it helps, with the human's approval and an ADR
-(`docs/adr/003`).
+the model's train split. Deviations are adopted only on evidence from
+`scripts/evaluate_imputation.py`, with the human's approval and an ADR
+(`docs/adr/003-imputation-design.md`, `docs/imputation_report.md`).
 
-1. Validate payload (Pydantic v2 schema). Omitted and `null` fields are both "missing".
+1. Validate payload (Pydantic v2 schema). Omitted and `null` fields are both "missing";
+   NaN/Infinity are invalid (422).
 2. Look up zipcode demographics; unknown zipcode → 422.
 3. If nothing is missing, skip imputation entirely (complete requests keep the v0 code path).
-4. KNN imputation of the missing fields, using the persisted imputer.
-5. Predict; return `predicted_price` and `imputed_fields` (empty list when nothing was imputed).
+4. Deterministic fill (**adopted**, ADR 003): if exactly one of `sqft_living`, `sqft_above`,
+   `sqft_basement` is missing, compute it from `sqft_living = sqft_above + sqft_basement`.
+   A negative result means contradictory input: leave the field to KNN.
+5. KNN imputation of the remaining missing fields, using the persisted imputer.
+6. Predict; return `predicted_price` and `imputed_fields` (every field that was missing, however
+   it was filled; empty list when nothing was).
 
-Candidates, **not** implemented unless ADR 003 adopts them: scaling inside the imputer;
-deterministic fill (if exactly one of `sqft_living`, `sqft_above`, `sqft_basement` is missing,
-compute it from `sqft_living = sqft_above + sqft_basement`); rounding `bedrooms` and `floors`,
-`bathrooms` to the nearest 0.25, clipping at 0. `model_version` in the response is deferred to
-Phase 5.
+**Rejected** after evaluation (ADR 003): scaling inside the imputer (worse when only `zipcode`
+is given) and rounding/clipping (no measurable effect; if ever revisited, `floors` rounds to
+0.5, not to an integer). `model_version` in the response is deferred to Phase 5.
 
 Phase 3 loads the imputer in the `lifespan`, but the per-request model/CSV loading stays until
 Phase 4 fixes and measures it.

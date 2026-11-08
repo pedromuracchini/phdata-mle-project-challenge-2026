@@ -57,6 +57,17 @@ def test_null_and_omitted_give_the_same_prediction(
     assert null.json() == test_client.post("/predict", json=omitted).json()
 
 
+@pytest.mark.parametrize("field", ["sqft_living", "sqft_above", "sqft_basement"])
+def test_one_missing_sqft_field_gives_the_complete_prediction(
+    test_client: TestClient, sample_home_features: dict[str, Any], field: str
+) -> None:
+    # sample_home_features satisfies sqft_living = sqft_above + sqft_basement (1500 = 1200 + 300).
+    response = test_client.post("/predict", json={**sample_home_features, field: None})
+
+    assert_prediction(response, imputed=[field])
+    assert response.json()["predicted_price"] == 253980.0
+
+
 def test_only_zipcode_imputes_every_house_feature(test_client: TestClient) -> None:
     response = test_client.post("/predict", json={"zipcode": "98042"})
 
