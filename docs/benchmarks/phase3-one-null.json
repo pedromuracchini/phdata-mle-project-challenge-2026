@@ -1,0 +1,63 @@
+{
+  "generated_at": "2026-11-08T14:07:23Z",
+  "base_url": "http://localhost:8000",
+  "load": {
+    "requests": 1000,
+    "concurrency": 8,
+    "warmup": 20,
+    "runs": 3,
+    "payloads": "100 rows of future_unseen_examples.csv, cycled",
+    "profile": "one-null"
+  },
+  "client_python": "3.12.16",
+  "runs": [
+    {
+      "run": 1,
+      "requests": 1000,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 135.9888542849999,
+      "throughput_rps": 7.353543827233376,
+      "latency_ms": {
+        "min": 209.845,
+        "p50": 1084.191,
+        "p95": 1283.995,
+        "p99": 1384.02,
+        "max": 1439.948,
+        "mean": 1083.873
+      }
+    },
+    {
+      "run": 2,
+      "requests": 1000,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 125.20323760700012,
+      "throughput_rps": 7.987013907251309,
+      "latency_ms": {
+        "min": 91.599,
+        "p50": 995.748,
+        "p95": 1156.415,
+        "p99": 1287.966,
+        "max": 1599.764,
+        "mean": 997.766
+      }
+    },
+    {
+      "run": 3,
+      "requests": 1000,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 124.92793828799995,
+      "throughput_rps": 8.004614609861498,
+      "latency_ms": {
+        "min": 156.417,
+        "p50": 1000.036,
+        "p95": 1151.77,
+        "p99": 1247.543,
+        "max": 1372.04,
+        "mean": 996.221
+      }
+    }
+  ]
+}

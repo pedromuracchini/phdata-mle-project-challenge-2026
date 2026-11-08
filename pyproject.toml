@@ -10,6 +10,8 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "pydantic",
+    # Typed configuration from environment variables (src/core/config.py).
+    "pydantic-settings>=2.16.2",
     # model.pkl (Pipeline(RobustScaler -> KNN)) was pickled with these versions. Another
     # version can fail to unpickle or silently change predictions: never relax these pins
     # without re-running the characterization test (see docs/adr/001).
@@ -18,6 +20,9 @@ dependencies = [
     "pandas==2.3.3",
     # Transitive (via scikit-learn), pinned here because KNN distances run through it.
     "scipy==1.15.3",
+    # Transitive (via scikit-learn); declared because src/model/imputer.joblib is written and
+    # read with it directly. Same version that produced the artifact (imputer_metadata.json).
+    "joblib==1.6.0",
 ]
 
 [dependency-groups]
@@ -57,10 +62,7 @@ extend-exclude = [
     "src/model/create_model.py",
     # LEGACY: original code that fails lint today. Remove each entry in the commit
     # that rewrites the file, so the rewrite is held to the full rules.
-    "tests/conftest.py",           # Phase 1
     "tests/unit/test_api_unit.py", # Phase 1
-    "src/main.py",                 # Phases 3-5
-    "src/api/endpoints.py",        # Phases 3-5
     "src/utils/loader.py",         # Phases 3-5
 ]
 # Apply the excludes even when a file is passed explicitly (pre-commit, the lint hook).
@@ -90,15 +92,14 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = [
     "model.create_model", # training script, model not retrained
-    "api.endpoints",      # LEGACY: Phases 3-5
     "utils.loader",       # LEGACY: Phases 3-5
-    "tests.conftest",                         # LEGACY: rewrite when the fixtures change
     "tests.unit.test_api_unit",               # LEGACY: rewrite when the fixtures change
     "tests.integration.test_api_integration", # LEGACY: rewrite when the fixtures change
 ]
 ignore_errors = true
 
-# scikit-learn ships no type information and no stubs package exists, so its API is Any.
+# scikit-learn and joblib ship no type information and no stubs package exists, so their API
+# is Any.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*"]
+module = ["sklearn", "sklearn.*", "joblib", "joblib.*"]
 ignore_missing_imports = true
