@@ -22,6 +22,7 @@ import argparse
 import asyncio
 import contextlib
 import cProfile
+import inspect
 import io
 import os
 import platform
@@ -186,7 +187,9 @@ def main(argv: list[str] | None = None) -> int:
     def call() -> Any:
         # The handler prints the DataFrame (v0); keep that cost but not the noise.
         with contextlib.redirect_stdout(io.StringIO()):
-            return asyncio.run(predict(features, request))
+            result: Any = predict(features, request)
+            # `async def` before Phase 4 step 7, so older images can still be profiled.
+            return asyncio.run(result) if inspect.iscoroutine(result) else result
 
     warmup_result = call()
 

@@ -61,9 +61,11 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy"}
 
 
-# Still `async def`, as in v0: Phase 4 makes this a `def` route as its own measured step.
+# `def`, not `async def`: imputation and inference are CPU-bound, so FastAPI runs the route in
+# its threadpool instead of on the event loop, which would otherwise serve one request at a
+# time. The artifacts on app.state are only read, and each request gets its own feature row.
 @router.post("/predict", response_model=PredictionResponse)
-async def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
+def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
     state = request.app.state
     model: ModelArtifact = state.model
     imputer: ImputerArtifact = state.imputer

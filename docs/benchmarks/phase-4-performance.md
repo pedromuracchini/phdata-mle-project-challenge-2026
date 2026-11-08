@@ -320,3 +320,63 @@ steps 2–6. [json](phase4-step6-thread-limits.json)
   route running every request on the event loop, one at a time. That is step 7.
 - **Memory: −9%** (177 → 161 MiB), from fewer thread stacks and buffers.
 - **`make test`: 49.7 s → 18.6 s.**
+
+## Step 7: `def` route
+
+`predict` is now a `def` route: FastAPI runs it in its threadpool (anyio, 40 threads by
+default) instead of on the event loop. CLAUDE.md requires this for CPU-bound work. The
+artifacts on `app.state` are only read, and each request gets its own copy of the zipcode's
+row. `tests/unit/test_predict_threadpool.py` checks two things: the route is synchronous, and
+240 requests sent from 16 threads at once get responses identical to the same requests sent
+serially. `make check-equivalence` matches the reference on all 128 patterns.
+
+Control: `d7cd2c1`. Candidate: the working tree. One worker, server unpinned.
+[json](phase4-step7-def-route.json)
+
+| Profile | Arm | req/s | p50 ms | p95 ms | p99 ms | server CPU ms/req | server cores | MiB |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| complete | control | 167.1 | 48.0 | 52.0 | 58.3 | 6.4 | 1.1 | 160.8 |
+| complete | candidate | 129.5 | 63.3 | 68.3 | 111.0 | 8.5 | 1.1 | 176.7 |
+| complete | **ratio** | **0.775** | **1.32** | 1.31 | **1.91** | 1.33 | | 1.10 |
+| one-null-knn | control | 63.0 | 127.8 | 128.4 | 155.6 | 24.3 | 1.5 | 161.3 |
+| one-null-knn | candidate | 72.5 | 112.2 | 131.5 | 155.5 | 36.5 | 2.7 | 228.2 |
+| one-null-knn | ratio | 1.15 | 0.878 | 1.02 | 0.999 | 1.50 | | 1.42 |
+| zipcode-only | control | 57.3 | 139.9 | 143.5 | 171.8 | 26.8 | 1.5 | 161.4 |
+| zipcode-only | candidate | 67.3 | 120.3 | 144.0 | 163.9 | 38.0 | 2.6 | 241.7 |
+| zipcode-only | ratio | 1.18 | 0.860 | 1.00 | 0.954 | 1.42 | | 1.50 |
+
+The direction is the same in every round: complete 128–132 vs 167–168 req/s; KNN 71–73 vs 63
+and 64–68 vs 57–59.
+
+- **Complete requests: 0.78× throughput, p99 +91%.** The server is 1.1 cores busy in both
+  arms, so the route is not short of CPU. Handing each request to a worker thread and back costs
+  CPU (6.4 → 8.5 ms per request) and latency, and with one process all of those threads share
+  one GIL.
+- **KNN requests: 1.15–1.18× throughput, p50 −12–14%, but CPU per request +42–50%.** The
+  numpy and scikit-learn sections release the GIL, so some of the work now overlaps (1.5 → 2.7
+  busy cores). The extra CPU goes to GIL contention between the threads.
+- **Memory: +10% (complete) to +50% (zipcode only).** Worker threads hold their own buffers
+  during the imputer's distance computation.
+
+### `/health` under load (the reason for the rule)
+
+The async route runs inference on the event loop, so every other request waits behind it,
+including the health check an orchestrator uses for liveness. Measured with the same two
+images: one worker, 8 clients loading `/predict` for 12 s, and one `/health` probe every 50 ms
+from a separate connection (client on CPUs 12–15).
+
+| Load | Arm | `/health` p50 ms | p95 ms | max ms |
+| --- | --- | ---: | ---: | ---: |
+| zipcode-only | control (`async def`) | 94.6 | 103.0 | 239.7 |
+| zipcode-only | candidate (`def`) | 4.8 | 13.6 | 21.8 |
+| complete | control (`async def`) | 1.9 | 6.6 | 15.2 |
+| complete | candidate (`def`) | 2.3 | 12.8 | 50.4 |
+
+- **Under KNN load, the async route delays `/health` by about one KNN batch** (p50 95 ms,
+  max 240 ms). The `def` route keeps it at 5 ms. A liveness probe with a short timeout would
+  restart a busy but healthy pod.
+- **Under complete load, the loop is mostly idle in both arms.** Complete requests use 6 ms of
+  CPU but wait about 48 ms (step 10).
+
+Throughput per process is not where this service scales. Step 8 adds workers, and the
+`def`-versus-`async` cost is measured again there with several processes.
