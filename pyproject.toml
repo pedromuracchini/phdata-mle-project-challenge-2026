@@ -10,6 +10,8 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "pydantic",
+    # Typed configuration from environment variables (src/core/config.py).
+    "pydantic-settings>=2.16.2",
     # model.pkl (Pipeline(RobustScaler -> KNN)) was pickled with these versions. Another
     # version can fail to unpickle or silently change predictions: never relax these pins
     # without re-running the characterization test (see docs/adr/001).
@@ -57,7 +59,6 @@ extend-exclude = [
     "src/model/create_model.py",
     # LEGACY: original code that fails lint today. Remove each entry in the commit
     # that rewrites the file, so the rewrite is held to the full rules.
-    "tests/conftest.py",           # Phase 1
     "tests/unit/test_api_unit.py", # Phase 1
     "src/main.py",                 # Phases 3-5
     "src/api/endpoints.py",        # Phases 3-5
@@ -92,7 +93,6 @@ module = [
     "model.create_model", # training script, model not retrained
     "api.endpoints",      # LEGACY: Phases 3-5
     "utils.loader",       # LEGACY: Phases 3-5
-    "tests.conftest",                         # LEGACY: rewrite when the fixtures change
     "tests.unit.test_api_unit",               # LEGACY: rewrite when the fixtures change
     "tests.integration.test_api_integration", # LEGACY: rewrite when the fixtures change
 ]
