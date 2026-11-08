@@ -63,7 +63,6 @@ extend-exclude = [
     # LEGACY: original code that fails lint today. Remove each entry in the commit
     # that rewrites the file, so the rewrite is held to the full rules.
     "tests/unit/test_api_unit.py", # Phase 1
-    "src/api/endpoints.py",        # Phases 3-5
     "src/utils/loader.py",         # Phases 3-5
 ]
 # Apply the excludes even when a file is passed explicitly (pre-commit, the lint hook).
@@ -93,7 +92,6 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = [
     "model.create_model", # training script, model not retrained
-    "api.endpoints",      # LEGACY: Phases 3-5
     "utils.loader",       # LEGACY: Phases 3-5
     "tests.unit.test_api_unit",               # LEGACY: rewrite when the fixtures change
     "tests.integration.test_api_integration", # LEGACY: rewrite when the fixtures change

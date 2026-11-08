@@ -129,6 +129,22 @@ def step_timings(repeat: int) -> str:
     return "\n".join(lines) + "\n"
 
 
+def startup_request() -> Any:
+    """A request whose app holds what the lifespan loads (Phase 3+: ``app.state.imputer``).
+
+    Startup work is done once here, outside the profile, as it is in the service. (The v0
+    route took no request; its profile is already recorded in docs/benchmarks/.)
+    """
+    from starlette.requests import Request
+
+    from core.artifacts import load_imputer
+    from core.config import get_settings
+    from main import app
+
+    app.state.imputer = load_imputer(get_settings())
+    return Request({"type": "http", "app": app})
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out-dir", type=Path, required=True)
@@ -140,11 +156,12 @@ def main(argv: list[str] | None = None) -> int:
     from api.endpoints import HomeFeatures, predict  # the service's own route
 
     features = HomeFeatures(**PAYLOAD)
+    request = startup_request()
 
     def call() -> Any:
-        # The handler prints the DataFrame; keep that cost but not the noise.
+        # The handler prints the DataFrame (v0); keep that cost but not the noise.
         with contextlib.redirect_stdout(io.StringIO()):
-            return asyncio.run(predict(features))
+            return asyncio.run(predict(features, request))
 
     warmup_result = call()
 
