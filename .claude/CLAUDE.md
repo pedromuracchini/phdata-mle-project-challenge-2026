@@ -35,8 +35,9 @@ them fails.
 ## Hard rules (never violate)
 
 - **Never retrain or modify `model.pkl`.**
-- **Never fit the imputer (or any scaler) inside a request.** Imputer and scaler are fitted once
-  by `scripts/fit_imputer.py` on training data, saved as artifacts, and loaded at startup.
+- **Never fit the imputer (or any scaler) inside a request.** The imputer (and a scaler, if one
+  is adopted) is fitted once by `scripts/fit_imputer.py` on the model's train split, saved as an
+  artifact, and loaded at startup.
 - **Load all artifacts and data once**, in the FastAPI `lifespan`, and read them from `app.state`.
   No disk I/O on the request path.
 - **Feature order is fixed** and must match what the model was trained on. Never reorder or
@@ -60,13 +61,27 @@ them fails.
 
 ## Imputation pipeline (order matters)
 
-1. Validate payload (Pydantic v2 schema).
-2. Look up zipcode demographics (precomputed dict `zipcode -> np.ndarray`).
-3. Deterministic fill: if exactly one of `sqft_living`, `sqft_above`, `sqft_basement` is missing,
-   compute it from `sqft_living = sqft_above + sqft_basement`.
-4. KNN imputation for remaining nulls, using the persisted imputer.
-5. Post-process: round `bedrooms` and `floors`; round `bathrooms` to the nearest 0.25; clip at 0.
-6. Predict; return `predicted_price`, `imputed_fields`, `model_version`.
+Phase 3 decision: **faithful to the notebook first**. The KNN configuration comes from
+`notebooks/imputation_experiment.ipynb` (`KNNImputer(n_neighbors=5, weights="distance")`, raw
+values, no scaling), fitted on the 33 model features (house fields + zipcode demographics) of
+the model's train split. Anything the notebook does not do is a *candidate*, adopted only if
+`scripts/evaluate_imputation.py` shows it helps, with the human's approval and an ADR
+(`docs/adr/003`).
+
+1. Validate payload (Pydantic v2 schema). Omitted and `null` fields are both "missing".
+2. Look up zipcode demographics; unknown zipcode → 422.
+3. If nothing is missing, skip imputation entirely (complete requests keep the v0 code path).
+4. KNN imputation of the missing fields, using the persisted imputer.
+5. Predict; return `predicted_price` and `imputed_fields` (empty list when nothing was imputed).
+
+Candidates, **not** implemented unless ADR 003 adopts them: scaling inside the imputer;
+deterministic fill (if exactly one of `sqft_living`, `sqft_above`, `sqft_basement` is missing,
+compute it from `sqft_living = sqft_above + sqft_basement`); rounding `bedrooms` and `floors`,
+`bathrooms` to the nearest 0.25, clipping at 0. `model_version` in the response is deferred to
+Phase 5.
+
+Phase 3 loads the imputer in the `lifespan`, but the per-request model/CSV loading stays until
+Phase 4 fixes and measures it.
 
 If the notebook and this file disagree, stop and flag it — do not silently pick one.
 
