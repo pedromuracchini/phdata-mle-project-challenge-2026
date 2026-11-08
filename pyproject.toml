@@ -63,7 +63,6 @@ extend-exclude = [
     # LEGACY: original code that fails lint today. Remove each entry in the commit
     # that rewrites the file, so the rewrite is held to the full rules.
     "tests/unit/test_api_unit.py", # Phase 1
-    "src/main.py",                 # Phases 3-5
     "src/api/endpoints.py",        # Phases 3-5
     "src/utils/loader.py",         # Phases 3-5
 ]
