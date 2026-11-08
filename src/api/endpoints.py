@@ -93,6 +93,9 @@ async def predict(home_features: HomeFeatures, request: Request) -> dict[str, An
         raise unknown_zipcode_error(home_features.zipcode)
 
     input_data = pd.concat([input_data, demographic_info], axis=1)
+    # v0 behaviour, kept on purpose despite CLAUDE.md's "no print": it is 71 % of handler time
+    # (docs/benchmarks/baseline.md), and Phase 4 removes it as its own measured optimization.
+    print(input_data)
     input_data = input_data[model_features]
 
     artifact = imputer_from(request)

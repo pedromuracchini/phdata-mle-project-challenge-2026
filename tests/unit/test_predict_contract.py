@@ -185,3 +185,16 @@ def test_validation_error_body_is_unchanged_for_ordinary_errors(
             }
         ]
     }
+
+
+def test_route_still_prints_the_input_frame_as_v0_did(
+    test_client: TestClient,
+    sample_home_features: dict[str, Any],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # v0 printed the 1x34 input frame on every request (71 % of handler time, Phase 1 profile).
+    # Kept so Phase 4 removes it as a measured optimization; delete this test with it.
+    response = test_client.post("/predict", json=sample_home_features)
+
+    assert response.status_code == 200
+    assert "[1 rows x 34 columns]" in capsys.readouterr().out
