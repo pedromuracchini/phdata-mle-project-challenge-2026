@@ -1,0 +1,66 @@
+{
+  "artifact": "imputer.joblib",
+  "artifact_sha256": "711b6baab36417b8db7ff806b7893b97f53cdf6257ed66a9d8b4447a11454dea",
+  "estimator": "sklearn.impute._knn.KNNImputer",
+  "params": {
+    "n_neighbors": 5,
+    "weights": "distance",
+    "metric": "nan_euclidean",
+    "missing_values": "nan",
+    "add_indicator": false,
+    "keep_empty_features": false
+  },
+  "scaling": null,
+  "columns": [
+    "bedrooms",
+    "bathrooms",
+    "sqft_living",
+    "sqft_lot",
+    "floors",
+    "sqft_above",
+    "sqft_basement",
+    "ppltn_qty",
+    "urbn_ppltn_qty",
+    "sbrbn_ppltn_qty",
+    "farm_ppltn_qty",
+    "non_farm_qty",
+    "medn_hshld_incm_amt",
+    "medn_incm_per_prsn_amt",
+    "hous_val_amt",
+    "edctn_less_than_9_qty",
+    "edctn_9_12_qty",
+    "edctn_high_schl_qty",
+    "edctn_some_clg_qty",
+    "edctn_assoc_dgre_qty",
+    "edctn_bchlr_dgre_qty",
+    "edctn_prfsnl_qty",
+    "per_urbn",
+    "per_sbrbn",
+    "per_farm",
+    "per_non_farm",
+    "per_less_than_9",
+    "per_9_to_12",
+    "per_hsd",
+    "per_some_clg",
+    "per_assoc",
+    "per_bchlr",
+    "per_prfsnl"
+  ],
+  "fit_data": {
+    "sources": {
+      "data/kc_house_data.csv": "d0875baa0251b21d4bdc9d2ae940a4fe0bb6009824f23dd0e2a5b2bf04557b7e",
+      "data/zipcode_demographics.csv": "8d9be9398129f6a9dde49678524103548d02373715f57cf57121d0fcb33f02a5"
+    },
+    "selection": "create_model.py rows: sales left-joined with demographics on zipcode, train_test_split(random_state=42), train part",
+    "n_rows": 16209
+  },
+  "versions": {
+    "python": "3.12.16",
+    "scikit-learn": "1.7.2",
+    "joblib": "1.6.0",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "generator": "scripts/fit_imputer.py",
+  "fitted_at": "2026-11-08T00:31:29Z"
+}

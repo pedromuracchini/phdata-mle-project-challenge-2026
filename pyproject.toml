@@ -20,6 +20,9 @@ dependencies = [
     "pandas==2.3.3",
     # Transitive (via scikit-learn), pinned here because KNN distances run through it.
     "scipy==1.15.3",
+    # Transitive (via scikit-learn); declared because src/model/imputer.joblib is written and
+    # read with it directly. Same version that produced the artifact (imputer_metadata.json).
+    "joblib==1.6.0",
 ]
 
 [dependency-groups]
@@ -98,7 +101,8 @@ module = [
 ]
 ignore_errors = true
 
-# scikit-learn ships no type information and no stubs package exists, so its API is Any.
+# scikit-learn and joblib ship no type information and no stubs package exists, so their API
+# is Any.
 [[tool.mypy.overrides]]
-module = ["sklearn", "sklearn.*"]
+module = ["sklearn", "sklearn.*", "joblib", "joblib.*"]
 ignore_missing_imports = true

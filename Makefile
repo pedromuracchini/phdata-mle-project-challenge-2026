@@ -1,5 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
-	setup test test-hooks test-docker lint typecheck bench docker-build docker-run
+	setup test test-hooks test-docker lint typecheck bench docker-build docker-run \
+	fit-imputer check-imputer
 
 # Build the test Docker image
 test-build:
@@ -16,11 +17,11 @@ test-unit: test-build
 		ml-api-test pytest tests/unit -v
 
 # Run integration tests with Docker Compose
-test-integration:
+test-integration: check-imputer
 	HOST_USER=$(HOST_USER) docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
 
 # Run all tests (unit + integration)
-test-all: test-build
+test-all: check-imputer test-build
 	@echo "Running integration tests..."
 	HOST_USER=$(HOST_USER) docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
 	@echo "Running unit tests..."
@@ -96,7 +97,18 @@ bench:
 	@mkdir -p $(dir $(BENCH_OUTPUT))
 	$(UV_RUN) python scripts/benchmark.py --base-url $(BENCH_URL) --output $(BENCH_OUTPUT)
 
-docker-build:
+# The KNN imputer artifact is committed (like model.pkl) and baked into the image. Fit it once
+# in the locked environment; check-imputer refits in memory and fails on any difference.
+fit-imputer:
+	$(call require,uv)
+	$(UV_RUN) python scripts/fit_imputer.py
+
+check-imputer:
+	$(call require,uv)
+	$(UV_RUN) python scripts/fit_imputer.py --check
+
+# The image bakes src/model/imputer.joblib in: refuse to build without a valid artifact.
+docker-build: check-imputer
 	docker build -t $(IMAGE) .
 
 # Runs in the foreground; Ctrl+C stops and removes the container.
@@ -123,7 +135,9 @@ help:
 	@echo "  lint              - Run ruff lint and format check"
 	@echo "  typecheck         - Run mypy"
 	@echo "  bench             - Benchmark the running API (BENCH_URL=$(BENCH_URL))"
-	@echo "  docker-build      - Build the API image"
+	@echo "  fit-imputer       - Fit the KNN imputer and write src/model/imputer.joblib"
+	@echo "  check-imputer     - Refit in memory; fail if the committed imputer differs"
+	@echo "  docker-build      - Build the API image (runs check-imputer first)"
 	@echo "  docker-run        - Run the API on port $(PORT)"
 	@echo ""
 	@echo "Examples:"

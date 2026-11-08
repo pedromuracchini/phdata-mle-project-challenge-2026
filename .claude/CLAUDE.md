@@ -26,7 +26,9 @@ Always use the Makefile targets; do not invent ad-hoc commands.
 | Lint + format check | `make lint` |
 | Type check | `make typecheck` |
 | Benchmark | `make bench` |
-| Build image | `make docker-build` |
+| Fit imputer artifact | `make fit-imputer` |
+| Verify imputer artifact | `make check-imputer` |
+| Build image | `make docker-build` (runs `check-imputer` first) |
 | Run API in Docker | `make docker-run` |
 
 Run `make lint typecheck test` before declaring any task done. A task is not done while any of

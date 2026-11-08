@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     model_path: Path = MODEL_DIR / "model.pkl"
     model_features_path: Path = MODEL_DIR / "model_features.json"
     demographics_path: Path = DATA_DIR / "zipcode_demographics.csv"
+    # Home sales the model was trained on; the imputer is fitted on the same train split.
+    sales_path: Path = DATA_DIR / "kc_house_data.csv"
+    imputer_path: Path = MODEL_DIR / "imputer.joblib"
+    imputer_metadata_path: Path = MODEL_DIR / "imputer_metadata.json"
 
 
 @lru_cache
