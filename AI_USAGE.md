@@ -18,6 +18,76 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-08: route rewrite silently dropped v0's per-request `print`
+
+- **Phase / task:** Phase 3, making every field except `zipcode` nullable (commit 6, the
+  `/predict` rewrite). Phase 3 must not change complete requests; performance is Phase 4's job.
+- **Asked:** rewrite the request schema and route for optional fields, keeping the v0 code path
+  for complete requests and leaving the per-request work for Phase 4 to measure.
+- **Produced:** the rewritten route no longer had v0's `print(input_data)`. The agent removed it
+  without saying so, probably following CLAUDE.md's "no `print`" convention. The commit message
+  and the review summary didn't mention it. Predictions were unchanged, so the
+  characterization test and every contract test passed.
+- **Caught by:** the Phase 3 benchmark. Complete requests ran at 109.8 req/s against 39.0 for the
+  Phase 2 control, about 2.7× faster in a phase that shouldn't change performance. The agent
+  flagged the speed-up as suspicious instead of reporting it as a gain, and traced it to the
+  missing `print`, which Phase 1 had profiled at 71 % of handler time.
+- **Outcome:** the human chose to restore it. A failing test came first
+  (`test_route_still_prints_the_input_frame_as_v0_did`), then the fix (`0d3129d`). The benchmarks
+  were rerun: complete requests 39.1 vs 39.0 req/s
+  ([`docs/benchmarks/phase-3-imputation.md`](docs/benchmarks/phase-3-imputation.md)). Phase 4
+  removes the `print` as its own measured optimization. Lessons: when rewriting legacy code,
+  diff it line by line against the original and list every removed statement in the review,
+  even when a convention seems to justify removing it. The characterization test checks
+  outputs, not side effects or cost. An unexpected speed-up is a bug signal until explained.
+
+### 2026-11-08: evaluation report draft overstated some results
+
+- **Phase / task:** Phase 3, `docs/imputation_report.md`.
+- **Asked:** write up the evaluation of the faithful imputer and the candidates (scaling, sqft
+  fill, rounding).
+- **Produced:** the draft summarized several numbers more favourably or more loosely than the
+  generated tables supported:
+  - scaling was said to improve the p90 shift on every feature (`sqft_basement` got 0.1 pp worse);
+  - the size of the NRMSE gain was off;
+  - the `sqft_above` MAPE cost was off;
+  - the cost of zipcode-only was given without the per-method range (13–17 pp);
+  - the scaling gain was given as "≤ 0.3 pp" without saying it was on `sqft_lot` only.
+- **Caught by:** a re-check of every claim in the draft against
+  `docs/imputation/evaluation_results.json`, before the report was proposed for commit.
+- **Outcome:** each sentence was corrected to the measured number before the commit, and the
+  decision (sqft fill only) was taken on the corrected text. Lesson: write prose summaries from
+  the generated tables, then check each sentence against them. "Better on all" claims are the
+  ones most likely to be wrong.
+
+### 2026-11-08: `make check-imputer` failed on a valid artifact (two bugs)
+
+- **Phase / task:** Phase 3, `scripts/fit_imputer.py --check` (ADR 002).
+- **Asked:** a check that refits the imputer and fails if the committed artifact differs.
+- **Produced:** two bugs made the check fail on a correct artifact:
+  1. the fitted-state comparison used `==` on the estimator params, and
+     `missing_values=nan` never equals itself;
+  2. the metadata recorded the artifact's path instead of its file name, so a verified copy in
+     another directory (the unit tests' `tmp_path`) failed the check.
+- **Caught by:** running the check and the unit tests; both failed on artifacts that were
+  known to be good.
+- **Outcome:** a NaN-aware comparison, plus a byte comparison of a refit's dump. The metadata
+  now records the file name only, and the artifact was refit. Both were fixed before the
+  artifact commit. Lesson: test a verification tool on a known-good input as well as on broken
+  ones, and keep machine-specific paths out of recorded metadata.
+
+### 2026-11-08: wrong v0 fallback in the profiling script
+
+- **Phase / task:** Phase 3, keeping `scripts/profile_predict.py` working after `predict` gained
+  a `request` argument.
+- **Asked:** keep the Phase 1 profiling script usable.
+- **Produced:** besides the fix (`startup_request()`, a request whose app has the imputer
+  loaded), the agent added a fallback for calling the v0 signature. It was wrong, and it was not
+  needed: the script only ever profiles the current route.
+- **Caught by:** review of the change in the session, before it was proposed for commit.
+- **Outcome:** the fallback was removed before the commit. Lesson: don't add compatibility paths
+  for code that no longer exists.
+
 ### 2026-11-07: proposed editing the baseline fixture's metadata to pass the version check
 
 - **Phase / task:** Phase 2, Step B (Python 3.10 → 3.12).
