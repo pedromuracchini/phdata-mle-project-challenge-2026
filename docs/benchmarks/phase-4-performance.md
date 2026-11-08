@@ -206,3 +206,49 @@ Control: parent `7eef931`. Candidate: the working tree. Server unpinned.
   spinning. That is step 6's subject.
 - The Phase 3 number "109 req/s without the print" came from a different session and image. It
   is superseded by this A/B, not compared with it.
+
+## Step 5: load the model, features and demographics once at startup
+
+The lifespan (`main.load_artifacts`) now loads:
+
+- the model, checked against `model_features.json`;
+- the demographics, as a lookup from zipcode to a read-only float64 row in model feature order,
+  with NaN at the house-field positions;
+- the imputer, as before.
+
+`services/prediction.py` fills the request's house fields into a copy of the zipcode's row. The
+request path no longer reads any file. A test patches `open`, `read_csv`, `pickle.load` and
+friends to fail on anything under `src/` and sends complete, one-null and zipcode-only requests.
+
+- **Model input is unchanged.** The frame is now all float64. In v0 it mixed int64 and float64,
+  and scikit-learn converted it to float64. `tests/unit/test_prediction.py` compares it with
+  v0's construction for every unseen row, 128 null patterns × 5 rows, and `bedrooms` at the
+  int64 extremes. `make check-equivalence` matches main's reference on all 128 patterns.
+- **`make test`: 75.3 s → 49.7 s** (148 more tests, 505 in total). Before, every test request
+  unpickled the model and parsed the CSV.
+- **Seen while writing the disk test:** scikit-learn's KNN `predict` calls threadpoolctl on every
+  call, and threadpoolctl reads `/proc/self/maps`. That is procfs, not an artifact, but it is
+  per-request work. Step 11 (pandas and leftover overhead) will look at it if the profile shows
+  it.
+
+Control: `3595962` (same `src/` as the parent `7633fb1`; the commit in between touched only
+scripts, tests and the Makefile). Candidate: the working tree. Server unpinned.
+[json](phase4-step5-load-once.json)
+
+| Profile | Arm | req/s | p50 ms | p95 ms | p99 ms | server CPU ms/req | server cores |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| complete | control | 145.0 | 55.9 | 56.4 | 84.0 | 48.0 | 6.9 |
+| complete | candidate | 168.0 | 48.0 | 52.0 | 56.0 | 28.7 | 4.8 |
+| complete | **ratio** | **1.16** | **0.858** | 0.923 | **0.667** | **0.599** | |
+| one-null-knn | control | 8.0 | 1016.0 | 1236.1 | 1287.9 | 1967.4 | 15.7 |
+| one-null-knn | candidate | 8.2 | 979.4 | 1187.2 | 1267.9 | 1907.0 | 15.8 |
+| one-null-knn | ratio | 1.03 | 0.964 | 0.960 | 0.984 | 0.969 | |
+| zipcode-only | control | 7.7 | 1036.6 | 1279.8 | 1338.9 | 2025.9 | 15.7 |
+| zipcode-only | candidate | 8.1 | 987.7 | 1236.2 | 1320.0 | 1952.0 | 15.8 |
+| zipcode-only | ratio | 1.04 | 0.953 | 0.966 | 0.986 | 0.964 | |
+
+- **Complete requests: 1.16× throughput, p99 −33%, CPU per request −40%** (48 → 29 ms). The
+  profile put the removed work at about 4 ms of a request: disk reads 2.7 ms plus the CSV
+  filter and concat. With the print gone, that is a sizeable share.
+- **KNN profiles: +3–4%, within the noise floor (about 5%).** No measurable change: those
+  requests are still dominated by the thread-pool contention, which is step 6.

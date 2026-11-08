@@ -86,8 +86,9 @@ the model's train split. Deviations are adopted only on evidence from
 is given) and rounding/clipping (no measurable effect; if ever revisited, `floors` rounds to
 0.5, not to an integer). `model_version` in the response is deferred to Phase 5.
 
-Phase 3 loads the imputer in the `lifespan`, but the per-request model/CSV loading stays until
-Phase 4 fixes and measures it.
+Since Phase 4 the `lifespan` (`main.load_artifacts`) loads the model, the feature order, the
+demographics (a zipcode -> model-order row lookup, `core.artifacts.load_demographics`) and the
+imputer; `services/prediction.py` builds the request's frame from the lookup.
 
 If the notebook and this file disagree, stop and flag it — do not silently pick one.
 

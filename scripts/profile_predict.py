@@ -147,18 +147,24 @@ def step_timings(repeat: int, payload: dict[str, Any], imputer: Any) -> str:
 
 
 def startup_request() -> Any:
-    """A request whose app holds what the lifespan loads (Phase 3+: ``app.state.imputer``).
+    """A request whose app holds what the lifespan loads (``main.load_artifacts``).
 
     Startup work is done once here, outside the profile, as it is in the service. (The v0
     route took no request; its profile is already recorded in docs/benchmarks/.)
     """
     from starlette.requests import Request
 
-    from core.artifacts import load_imputer
     from core.config import get_settings
     from main import app
 
-    app.state.imputer = load_imputer(get_settings())
+    try:
+        from main import load_artifacts
+    except ImportError:  # Phase 3 images: only the imputer is loaded at startup
+        from core.artifacts import load_imputer
+
+        app.state.imputer = load_imputer(get_settings())
+    else:
+        load_artifacts(app.state, get_settings())
     return Request({"type": "http", "app": app})
 
 
