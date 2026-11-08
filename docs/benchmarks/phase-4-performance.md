@@ -150,3 +150,36 @@ Step 6 (`def` route) runs requests in the threadpool, up to 40 at a time. Before
 (step 7), each of those requests would bring the two 16-thread pools into play concurrently,
 which is the contention measured above, multiplied. **Proposed order: step 7 (thread limits)
 before step 6 (`def` route)**, so each is measured on its own without the other's artefact.
+
+## Step 4: remove the per-request `print(DataFrame)`
+
+This is a deliberate behaviour change. v0 wrote the 1×34 input frame to stdout on every
+request. It is removed with no replacement; Phase 5 adds structured logging. The test that
+asserted v0's print is deleted in the same commit.
+
+Control: parent `7eef931`. Candidate: the working tree. Server unpinned.
+[json](phase4-step4-remove-print.json)
+
+| Profile | Arm | req/s | p50 ms | p95 ms | p99 ms | server CPU ms/req | server cores |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| complete | control | 45.8 | 172.1 | 180.2 | 220.1 | 72.8 | 3.3 |
+| complete | candidate | 145.7 | 55.9 | 56.5 | 75.1 | 47.8 | 7.0 |
+| complete | **ratio** | **3.18** | **0.325** | 0.313 | 0.341 | 0.656 | |
+| one-null-knn | control | 6.0 | 1348.2 | 1520.3 | 1564.3 | 2431.4 | 14.7 |
+| one-null-knn | candidate | 7.8 | 1047.2 | 1263.5 | 1308.1 | 2028.3 | 15.7 |
+| one-null-knn | **ratio** | **1.30** | **0.777** | 0.831 | 0.836 | 0.834 | |
+| zipcode-only | control | 6.0 | 1355.8 | 1512.6 | 1563.9 | 2436.1 | 14.6 |
+| zipcode-only | candidate | 7.6 | 1063.2 | 1260.7 | 1319.5 | 2075.0 | 15.7 |
+| zipcode-only | **ratio** | **1.26** | **0.784** | 0.833 | 0.844 | 0.852 | |
+
+- **Complete requests: 3.2× throughput, p50 172 → 56 ms.** The step 3 profile predicted
+  14.6 of 20.7 ms of handler time (70%). The gain in the container is a little larger than that
+  share suggests: stdout there goes through Docker's log driver, not a discarded buffer as in the
+  profile.
+- **KNN profiles: 1.3×.** The print is a smaller share of a request dominated by the thread
+  pools (step 3).
+- **Server cores went up on complete requests (3.3 → 7.0)** while CPU per request went down
+  (73 → 48 ms). With requests arriving 3× faster, the OpenMP pool spends more of its time
+  spinning. That is step 6's subject.
+- The Phase 3 number "109 req/s without the print" came from a different session and image. It
+  is superseded by this A/B, not compared with it.
