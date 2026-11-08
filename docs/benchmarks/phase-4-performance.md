@@ -39,6 +39,29 @@ session:
     the workers.
   - The final table reports both layouts.
 
+## Correctness gates (every commit)
+
+Each commit must also pass:
+
+- **`make lint typecheck test`.** This includes the characterization test (complete requests
+  bit-for-bit against `tests/fixtures/baseline_predictions.json`, untouched), the hand-computed
+  KNN reference and the 128 null-combination tests.
+- **`make check-imputer`.** The committed imputer must match a refit.
+- **`make check-equivalence`** ([`scripts/check_equivalence.py`](../../scripts/check_equivalence.py)).
+  This closes a gap the other gates leave: the API doesn't return imputed values, and the
+  null-combination tests only check for a 200.
+  - It calls the real route in-process inside the service image, for the 100 unseen rows × all
+    128 null patterns (12,800 calls).
+  - For each call it hashes the exact float64 bytes of the 33 values the model receives (after
+    imputation), the predicted price and `imputed_fields`.
+  - It compares the result, per pattern, with
+    [`tests/fixtures/imputation_reference.json`](../../tests/fixtures/imputation_reference.json),
+    generated once from main's image (`1697b6a`, default thread pools).
+  - Step 4's commit reproduced the reference exactly in a separate run, which shows the check is
+    deterministic.
+  - It takes about 32 minutes on main because of the thread contention found in step 3, so it is
+    not part of `make test`.
+
 ## Machine
 
 | | |

@@ -1,6 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
 	setup test test-hooks test-docker lint typecheck bench docker-build docker-run \
-	fit-imputer check-imputer evaluate-imputation ab-bench
+	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence
 
 # Build the test Docker image
 test-build:
@@ -142,6 +142,18 @@ evaluate-imputation:
 	$(call require,uv)
 	$(UV_RUN) python scripts/evaluate_imputation.py
 
+# Bit-for-bit check of the imputation path (scripts/check_equivalence.py): every unseen row x
+# every null pattern through the working tree's image, compared with the reference generated
+# from main's image (model input after imputation, prediction, imputed_fields).
+EQUIVALENCE_REFERENCE ?= tests/fixtures/imputation_reference.json
+check-equivalence: check-imputer
+	$(call require,docker)
+	docker build -q -t $(IMAGE):equivalence . >/dev/null
+	docker run --rm -w /app --user $(HOST_USER) \
+		-v $(PWD)/scripts:/scripts:ro -v $(PWD)/$(dir $(EQUIVALENCE_REFERENCE)):/ref:ro \
+		$(IMAGE):equivalence python /scripts/check_equivalence.py \
+		--check /ref/$(notdir $(EQUIVALENCE_REFERENCE))
+
 # The image bakes src/model/imputer.joblib in: refuse to build without a valid artifact.
 docker-build: check-imputer
 	docker build -t $(IMAGE) .
@@ -171,6 +183,7 @@ help:
 	@echo "  typecheck         - Run mypy"
 	@echo "  bench             - Benchmark the running API (BENCH_URL=$(BENCH_URL))"
 	@echo "  ab-bench          - Interleaved A/B benchmark: CONTROL=<ref> vs CANDIDATE=<ref|worktree>"
+	@echo "  check-equivalence - Imputation path bit-for-bit vs the reference from main (Docker)"
 	@echo "  fit-imputer       - Fit the KNN imputer and write src/model/imputer.joblib"
 	@echo "  check-imputer     - Refit in memory; fail if the committed imputer differs"
 	@echo "  evaluate-imputation - Compare imputation methods (docs/imputation/)"
