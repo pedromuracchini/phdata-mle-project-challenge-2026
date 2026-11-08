@@ -34,7 +34,7 @@ import time
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -213,7 +213,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.output:
         report = {
-            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "base_url": args.base_url,
             "load": {
                 "requests": args.requests,

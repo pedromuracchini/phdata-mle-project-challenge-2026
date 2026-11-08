@@ -26,7 +26,7 @@ import logging
 import subprocess
 import sys
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
             **image_meta(args.image),
             "source_csv": args.csv.resolve().relative_to(REPO_ROOT).as_posix(),
             "row_id": "0-based index of the data row in source_csv (header excluded)",
-            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "generator": "scripts/generate_baseline.py",
         },
         "predictions": records,

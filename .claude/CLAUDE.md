@@ -87,7 +87,9 @@ Keep business logic in `services/`; routes stay thin.
 
 ## Conventions
 
-- Python 3.11+, full type hints, ruff formatting, no `print` — use the structured logger.
+- Python 3.12 (exactly 3.12.16, pinned in `.python-version` and the Docker base images; change
+  them together, and only after the characterization test passes on the new version), full
+  type hints, ruff formatting, no `print` — use the structured logger.
 - Logs are JSON and include `request_id`, latency and `imputed_fields`.
 - Errors: 422 for invalid input, 500 without stack traces in the response body.
 - Config via environment variables only; no hard-coded paths outside `core/config.py`.
