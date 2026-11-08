@@ -438,3 +438,49 @@ Control: `facff53` (with `--reload`). Candidate: the working tree, 1 worker.
   [12](phase4-step8a-sweep-before-nodelay-12.json)). Memory from that sweep (not affected by the
   floor): each worker is 200–250 MiB RSS under KNN load, the supervisor 30 MiB, and the
   container about 122 MiB more per extra worker (352 MiB with 2 workers, 1,575 MiB with 12).
+
+## Step 10: `TCP_NODELAY` on every connection (the ~48 ms floor)
+
+Moved ahead of the worker measurements (8b): without it, more than one worker brings the floor
+back (step 8a). The cause was confirmed in 8a with a minimal experiment, and it is server-side.
+
+`core/server.py` adds `NoDelayH11Protocol`, uvicorn's `H11Protocol` with `TCP_NODELAY` set in
+`connection_made`. The production `CMD` and `make docker-dev` select it with `--http
+core.server:NoDelayH11Protocol`, an import string, which uvicorn accepts there. No
+dependency was added. `tests/unit/test_server_protocol.py` serves from a socket bound with
+uvicorn's own `Config.bind_socket()`, as for `--workers` and `--reload`:
+
+- with uvicorn's h11, the option is 0. That test pins the bug: if a uvicorn upgrade fixes it,
+  the test fails and the workaround can go;
+- with the new protocol, it is 1;
+- the import string resolves to a subclass of `H11Protocol`.
+
+The sequential experiment from 8a, rerun on the new image (one connection, 200 complete
+requests): p50 4.0 ms with 1 worker, 4.0 ms with 2, 4.2 ms with 6. Before, it was 48.0 ms
+with 2.
+
+Control: `49c2c2d`. Candidate: the working tree. The same worker count in both arms.
+
+**2 workers** ([json](phase4-step10-nodelay-2-workers.json)):
+
+| Profile | Arm | req/s | p50 ms | p95 ms | p99 ms | server CPU ms/req | server cores | MiB |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| complete | control | 148.6 | 52.7 | 59.9 | 63.0 | 4.4 | 0.6 | 288.2 |
+| complete | candidate | 625.4 | 12.1 | 15.8 | 20.3 | 4.2 | 2.8 | 287.1 |
+| complete | **ratio** | **4.21** | **0.229** | 0.264 | **0.323** | 0.963 | | 1.00 |
+| one-null-knn | control | 83.3 | 104.0 | 120.0 | 148.4 | 25.1 | 2.2 | 338.6 |
+| one-null-knn | candidate | 152.1 | 51.6 | 68.4 | 86.1 | 27.7 | 4.3 | 359.4 |
+| one-null-knn | **ratio** | **1.82** | **0.496** | 0.570 | 0.580 | 1.10 | | 1.06 |
+| zipcode-only | control | 84.5 | 99.7 | 119.9 | 136.2 | 26.7 | 2.2 | 381.9 |
+| zipcode-only | candidate | 132.5 | 63.1 | 98.8 | 111.1 | 27.8 | 3.7 | 353.3 |
+| zipcode-only | **ratio** | **1.57** | **0.633** | 0.824 | 0.816 | 1.04 | | 0.93 |
+
+**1 worker, neutral check** ([json](phase4-step10-nodelay-1-worker.json)): every ratio
+is within 0.96–1.02 for throughput, p50 and p99 (complete 0.978×, one-null 1.01×,
+zipcode-only 1.02×), inside the ~5% noise floor. A single process already got `TCP_NODELAY`
+from asyncio, so this is expected.
+
+- **With 2 workers, complete requests run 4.21× faster (p50 52.7 → 12.1 ms) and KNN requests
+  1.57–1.82×.** CPU per request does not change: the requests were waiting, not working.
+- **The floor was in every earlier measurement of complete requests, main included** (main ran
+  `--reload`, a child-process server). The worker sweep (8b) now measures workers, not Nagle.

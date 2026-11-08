@@ -56,5 +56,8 @@ COPY src .
 # deploy time to the cores the container gets (threads per worker are 1, above). Every worker
 # loads its own copy of the artifacts. No --reload here: it is a development tool (it polled
 # every *.py under /app, .venv included, 4 times a second); `make docker-dev` runs with it.
+# --http: uvicorn's h11 protocol plus TCP_NODELAY. Serving from worker processes, uvicorn
+# leaves Nagle on and every response waited ~44 ms for the client's ACK (core/server.py).
 ENV WEB_CONCURRENCY=1
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--http", "core.server:NoDelayH11Protocol"]

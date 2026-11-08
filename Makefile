@@ -172,7 +172,7 @@ docker-run:
 docker-dev: docker-build
 	docker run --rm -p $(PORT):8000 --name $(CONTAINER)-dev -v "$(CURDIR)/src:/src:ro" \
 		$(IMAGE) uvicorn main:app --app-dir /src --host 0.0.0.0 --port 8000 \
-		--reload --reload-dir /src
+		--http core.server:NoDelayH11Protocol --reload --reload-dir /src
 
 # Display help information
 help:

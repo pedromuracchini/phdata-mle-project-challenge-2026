@@ -13,7 +13,9 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCKERFILE = (REPO_ROOT / "Dockerfile").read_text()
+DOCKERFILE = (REPO_ROOT / "Dockerfile").read_text().replace("\\\n", " ")  # join continuations
+MAKEFILE = (REPO_ROOT / "Makefile").read_text()
+NODELAY_PROTOCOL = "core.server:NoDelayH11Protocol"
 
 
 def production_cmd() -> list[str]:
@@ -35,12 +37,23 @@ def test_worker_count_comes_from_web_concurrency() -> None:
     assert int(default.group(1)) >= 1
 
 
-def test_reload_is_kept_for_the_dev_target_only() -> None:
-    makefile = (REPO_ROOT / "Makefile").read_text()
-    dev_target = re.search(r"^docker-dev:.*?(?=^\S|\Z)", makefile, flags=re.MULTILINE | re.DOTALL)
+def dev_target() -> str:
+    target = re.search(r"^docker-dev:.*?(?=^\S|\Z)", MAKEFILE, flags=re.MULTILINE | re.DOTALL)
+    assert target is not None
+    return target.group(0)
 
-    assert dev_target is not None
-    assert "--reload" in dev_target.group(0)
+
+def test_reload_is_kept_for_the_dev_target_only() -> None:
+    makefile = MAKEFILE
+    dev = dev_target()
+    assert "--reload" in dev
     commands = [line for line in makefile.splitlines() if not line.lstrip().startswith("#")]
-    dev_commands = [line for line in dev_target.group(0).splitlines() if "--reload" in line]
+    dev_commands = [line for line in dev.splitlines() if "--reload" in line]
     assert [line for line in commands if "--reload" in line] == dev_commands
+
+
+def test_production_and_dev_serve_with_the_nodelay_protocol() -> None:
+    """Both serve from uvicorn-bound sockets (workers, reload): see core/server.py."""
+    command = production_cmd()
+    assert command[command.index("--http") + 1] == NODELAY_PROTOCOL
+    assert f"--http {NODELAY_PROTOCOL}" in dev_target()

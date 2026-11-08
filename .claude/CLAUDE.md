@@ -182,6 +182,8 @@ command, fix the cause or ask the human — never look for a way around it.
 - Worker processes come from `WEB_CONCURRENCY` (uvicorn's own variable; image default in the
   `Dockerfile`). Keep workers x threads <= the cores the container gets. Never put `--reload` or
   `--workers` in the production `CMD` (`tests/unit/test_server_command.py`).
+- Serve with `--http core.server:NoDelayH11Protocol` (production `CMD` and `make docker-dev`):
+  with workers or reload, uvicorn leaves Nagle on and every response waits ~44 ms for an ACK.
 
 ## Decisions and AI log
 
