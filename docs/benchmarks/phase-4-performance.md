@@ -252,3 +252,71 @@ scripts, tests and the Makefile). Candidate: the working tree. Server unpinned.
   filter and concat. With the print gone, that is a sizeable share.
 - **KNN profiles: +3–4%, within the noise floor (about 5%).** No measurable change: those
   requests are still dominated by the thread-pool contention, which is step 6.
+
+## Step 6: one BLAS/OpenMP thread per process
+
+`OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and `MKL_NUM_THREADS` are set to 1 in `Dockerfile`,
+in `Dockerfile.test`, and for host tests through the Makefile's `THREAD_ENV`.
+`tests/unit/test_thread_limits.py` keeps the three in sync. No dependency was added: the limit
+is environment only, so threadpoolctl was not needed.
+
+### The limit changes 93 tie-broken predictions (approved)
+
+The first run of the gates failed: baseline row 99 (564,800 → 573,300) and 93 of 128
+equivalence patterns. Dumps of every call's model input and prediction (100 rows × 128
+patterns, same image, thread counts set with `-e`) showed:
+
+| OpenMP / OpenBLAS threads | Imputed values vs main | Predictions vs main |
+| --- | --- | --- |
+| 8 / 1 | identical | identical (all 128 patterns match main's reference) |
+| 16 / 16 | identical | 94 differ |
+| 16 / 1 | identical to 16 / 16 | identical to 16 / 16 |
+| 1 / 16 | identical | 93 differ |
+| 1 / 1 | identical | 93 differ |
+
+- **Imputation is unaffected.** The imputer's `nan_euclidean_distances` gives the same values
+  with any number of OpenBLAS threads.
+- **Only the OpenMP count of the model's KNN search changes predictions.** scikit-learn's
+  brute-force search splits the training set into one chunk per thread, and the chunking
+  decides which neighbour is kept when two are at exactly the same distance. All 93 changed
+  calls are exact ties at the 5th neighbour (checked one by one), across unseen rows 7, 18,
+  96 and 99. The changes have a median of 8,500 and a maximum of 54,000 (8.6%).
+- **Main runs with 8 OpenMP threads, not 16.** With `OMP_NUM_THREADS` unset,
+  scikit-learn 1.7.2 uses `min(omp_get_max_threads(), physical cores)`, which is 8 on this
+  machine. So v0's predictions for tied rows depend on the host's physical core count: the
+  committed baseline would already fail on a host with another core count.
+
+The human chose one thread and approved amending row 99 of `baseline_predictions.json` to
+573,300. The amendment is recorded in the fixture's top-level `amendments`, and `meta` is
+unchanged. The human also approved regenerating `imputation_reference.json` from main's image
+(`1697b6a4c291`) with one thread per pool. Complete requests on other rows, and all imputed
+values, are unchanged.
+
+### A/B
+
+Control: `917584b`. Candidate: the working tree. Server unpinned (0–15), as decided for
+steps 2–6. [json](phase4-step6-thread-limits.json)
+
+| Profile | Arm | req/s | p50 ms | p95 ms | p99 ms | server CPU ms/req | server cores | MiB |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| complete | control | 167.6 | 48.0 | 52.1 | 56.5 | 30.3 | 5.1 | 176.9 |
+| complete | candidate | 166.9 | 48.0 | 52.1 | 60.2 | 6.4 | 1.1 | 160.7 |
+| complete | ratio | 0.996 | 1.00 | 1.00 | 1.06 | **0.21** | | 0.91 |
+| one-null-knn | control | 8.2 | 980.1 | 1223.4 | 1267.6 | 1912.3 | 15.7 | 177.9 |
+| one-null-knn | candidate | 66.1 | 120.0 | 124.2 | 147.7 | 23.2 | 1.5 | 161.5 |
+| one-null-knn | **ratio** | **8.05** | **0.122** | **0.101** | **0.117** | **0.012** | | 0.91 |
+| zipcode-only | control | 8.1 | 995.2 | 1203.9 | 1260.5 | 1936.6 | 15.8 | 177.9 |
+| zipcode-only | candidate | 56.6 | 140.0 | 144.3 | 172.0 | 27.2 | 1.5 | 161.4 |
+| zipcode-only | **ratio** | **6.96** | **0.141** | **0.120** | **0.136** | **0.014** | | 0.91 |
+
+- **KNN requests: 8.0× and 7.0× throughput, p50 −88% and −86%, CPU per request −99%**
+  (1.9 s → 23 ms). The server went from 15.7 busy cores to 1.5.
+- **Complete requests: same throughput and latency, CPU per request −79%** (30 → 6.4 ms). The
+  OpenMP pool was spinning on these too. Throughput did not move because something else bounds
+  it: 8 clients at a flat 48 ms p50 give 167 req/s, while the server is 1.1 cores busy. A flat
+  ~40–48 ms floor is the signature of the keep-alive latency of step 10; it is checked there
+  with a minimal experiment, not assumed here.
+- **KNN latency is now serial.** 23 ms of CPU but 120 ms p50 with 8 clients fits the `async`
+  route running every request on the event loop, one at a time. That is step 7.
+- **Memory: −9%** (177 → 161 MiB), from fewer thread stacks and buffers.
+- **`make test`: 49.7 s → 18.6 s.**

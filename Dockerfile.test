@@ -31,6 +31,10 @@ COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH" \
     COVERAGE_FILE=/app/test-results/.coverage \
     PYTEST_ADDOPTS="-p no:cacheprovider"
+# Same thread-pool limits as the API image (Dockerfile): tests run what production runs.
+ENV OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
 RUN mkdir -m 1777 /app/test-results
 
 # Copy application code (pytest.ini puts src/ on sys.path)

@@ -18,6 +18,29 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-08: assumed limiting the thread pools could not change predictions
+
+- **Phase / task:** Phase 4, step 6 (one BLAS/OpenMP thread per process).
+- **Asked:** remove the thread-pool contention found in step 3, changing no prediction.
+- **Produced:** the agent planned the thread limits as a pure performance change and expected
+  the gates to pass unchanged. It also first read main's default as 16 OpenMP threads (the
+  logical CPU count). With `OMP_NUM_THREADS` unset, scikit-learn 1.7.2 uses the *physical* core
+  count, which is 8 here.
+- **Caught by:** the gates. `test_complete_payload_matches_baseline[row-99]` failed
+  (573,300 vs 564,800) and `make check-equivalence` reported 93 of 128 patterns different. Value
+  dumps under five thread configurations showed:
+  - imputed values are bit-identical in every configuration;
+  - the OpenBLAS count changes nothing;
+  - only the OpenMP count of the model's KNN search changes results: 93 of 12,800 calls, all
+    exact ties at the 5th neighbour (checked one by one);
+  - `OMP_NUM_THREADS=8` reproduces main's reference bit-for-bit.
+- **Outcome:** the human chose one thread for both pools and approved amending baseline row 99
+  (recorded in the fixture's `amendments`) and regenerating the imputation reference from main
+  with one thread. The old value depended on the recording host's core count. Lessons: thread
+  counts can be part of a numeric result, so run the gates on any "pure performance"
+  configuration change before measuring it; and check a library's default rather than assume
+  it.
+
 ### 2026-11-08: route rewrite silently dropped v0's per-request `print`
 
 - **Phase / task:** Phase 3, making every field except `zipcode` nullable (commit 6, the

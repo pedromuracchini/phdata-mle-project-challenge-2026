@@ -1412,7 +1412,19 @@
         "sqft_basement": 0.0,
         "zipcode": "98075"
       },
-      "predicted_price": 564800.0
+      "predicted_price": 573300.0
+    }
+  ],
+  "amendments": [
+    {
+      "row_id": 99,
+      "predicted_price": {
+        "recorded": 564800.0,
+        "amended": 573300.0
+      },
+      "date": "2026-11-08",
+      "approved_by": "project owner, Phase 4 step 6 (one BLAS/OpenMP thread per process)",
+      "reason": "Row 99 has an exact tie at the model's 5th neighbour (training rows 5929 and 12118, distance 0.14281761149130198). scikit-learn's brute-force KNN breaks it by how the training set is chunked across OpenMP threads: v0 ran with the default, the host's physical core count (8 when recorded), and keeps 12118 (564,800); one thread keeps 5929 (573,300). The recorded value was therefore host-dependent. Phase 4 pins OMP_NUM_THREADS=1, which makes it deterministic on any host. The other 99 rows are unchanged. See docs/benchmarks/phase-4-performance.md (step 6)."
     }
   ]
 }

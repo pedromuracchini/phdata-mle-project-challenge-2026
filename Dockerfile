@@ -38,6 +38,18 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
+# One BLAS (OpenBLAS, numpy) and one OpenMP (scikit-learn) thread per process. A request is one
+# row: the pools only add threads that spin against each other. Unlimited, a KNN request took
+# 180 ms of handler time instead of 32 ms (docs/benchmarks/phase-4-performance.md, step 3).
+# Concurrency comes from uvicorn workers instead; keep workers x threads <= cores.
+# The OpenMP count also fixes results: scikit-learn's KNN breaks exact neighbour-distance ties
+# by how it chunks the training set across threads, so one thread makes predictions
+# reproducible on any host (tests/fixtures/baseline_predictions.json, "amendments").
+# Keep in sync with Dockerfile.test and the Makefile's THREAD_ENV.
+ENV OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
+
 COPY src .
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

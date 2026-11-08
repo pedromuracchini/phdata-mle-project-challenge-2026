@@ -173,6 +173,11 @@ command, fix the cause or ask the human — never look for a way around it.
   `docs/benchmarks/`. Do not claim a speed-up without numbers.
 - Profile (py-spy or cProfile) before optimizing; optimize what the profile shows.
 - One optimization per commit, with the characterization test passing at each step.
+- One BLAS/OpenMP thread per process (`OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`,
+  `MKL_NUM_THREADS` = 1 in `Dockerfile`, `Dockerfile.test` and the Makefile's `THREAD_ENV`;
+  `tests/unit/test_thread_limits.py` keeps them in sync). Scale with workers, not threads.
+  The OpenMP count is part of the results: scikit-learn's KNN breaks exact distance ties by
+  thread chunking, so changing it changes predictions (baseline row 99). Ask before changing it.
 
 ## Decisions and AI log
 

@@ -53,6 +53,9 @@ require = @command -v $(1) >/dev/null 2>&1 || { \
 
 UV_RUN = uv run --frozen
 
+# Same thread-pool limits as the images (Dockerfile): the host tests run what production runs.
+THREAD_ENV = OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+
 # Install Python (.python-version) and the locked runtime + dev dependencies into .venv.
 setup:
 	$(call require,uv)
@@ -61,7 +64,7 @@ setup:
 # Hook tests, unit tests and the characterization test, on the host through uv.
 test: test-hooks
 	$(call require,uv)
-	$(UV_RUN) pytest tests/unit $(CHARACTERIZATION_TEST)
+	$(THREAD_ENV) $(UV_RUN) pytest tests/unit $(CHARACTERIZATION_TEST)
 
 # Characterization test inside the test image: complete requests must reproduce
 # tests/fixtures/baseline_predictions.json with the image's (locked) library versions.
