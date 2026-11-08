@@ -4,6 +4,12 @@ Load profile (defaults; keep them fixed when comparing before and after a change
 
 * payloads: the 100 rows of ``src/data/future_unseen_examples.csv``, mapped to the v0 request
   schema (8 fields, ``zipcode`` as a string), sent in CSV order and cycled;
+* ``--profile`` decides which fields are sent as ``null`` (default ``complete``: none, the
+  same bodies as every earlier benchmark). ``one-null``: row *i* has the house field
+  ``i mod 7`` set to null, so each field is null in turn; three of the seven are sqft fields,
+  which the service fills from the sqft identity without KNN. ``one-null-knn``: the same with
+  only the four fields that always go to KNN (bedrooms, bathrooms, sqft_lot, floors).
+  ``zipcode-only``: every house field null;
 * ``--warmup 20`` requests, sent sequentially and not measured;
 * ``--requests 1000`` measured requests from ``--concurrency 8`` clients. Each client is a
   thread with its own keep-alive ``http.client.HTTPConnection``; it sends the next request as
@@ -46,6 +52,10 @@ INT_FIELDS = ("bedrooms",)
 FLOAT_FIELDS = ("bathrooms", "sqft_living", "sqft_lot", "floors", "sqft_above", "sqft_basement")
 STR_FIELDS = ("zipcode",)
 
+HOUSE_FIELDS = INT_FIELDS + FLOAT_FIELDS
+KNN_FIELDS = ("bedrooms", "bathrooms", "sqft_lot", "floors")
+PROFILES = ("complete", "one-null", "one-null-knn", "zipcode-only")
+
 logger = logging.getLogger("benchmark")
 
 
@@ -60,14 +70,28 @@ class RunResult:
     latency_ms: dict[str, float] = field(default_factory=dict)
 
 
-def load_payloads(csv_path: Path) -> list[bytes]:
+def null_fields(profile: str, index: int) -> tuple[str, ...]:
+    """House fields sent as null for CSV row ``index`` under ``profile``."""
+    if profile == "complete":
+        return ()
+    if profile == "one-null":
+        return (HOUSE_FIELDS[index % len(HOUSE_FIELDS)],)
+    if profile == "one-null-knn":
+        return (KNN_FIELDS[index % len(KNN_FIELDS)],)
+    if profile == "zipcode-only":
+        return HOUSE_FIELDS
+    raise ValueError(f"unknown profile {profile!r}")
+
+
+def load_payloads(csv_path: Path, profile: str = "complete") -> list[bytes]:
     """Encoded request bodies, one per CSV row."""
     bodies = []
     with csv_path.open(newline="") as handle:
-        for row in csv.DictReader(handle):
+        for index, row in enumerate(csv.DictReader(handle)):
             payload: dict[str, Any] = {name: int(row[name]) for name in INT_FIELDS}
             payload.update({name: float(row[name]) for name in FLOAT_FIELDS})
             payload.update({name: row[name].strip() for name in STR_FIELDS})
+            payload.update(dict.fromkeys(null_fields(profile, index)))
             bodies.append(json.dumps(payload).encode())
     return bodies
 
@@ -174,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--warmup", type=int, default=20)
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=60.0)
+    parser.add_argument("--profile", choices=PROFILES, default="complete")
     parser.add_argument("--output", type=Path, help="write results as JSON to this file")
     args = parser.parse_args(argv)
 
@@ -181,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
 
     url = urllib.parse.urlsplit(args.base_url)
     host, port = url.hostname or "localhost", url.port or 80
-    bodies = load_payloads(args.csv)
+    bodies = load_payloads(args.csv, args.profile)
 
     health = http.client.HTTPConnection(host, port, timeout=args.timeout)
     health.request("GET", "/health")
@@ -221,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
                 "warmup": args.warmup,
                 "runs": args.runs,
                 "payloads": f"{len(bodies)} rows of {args.csv.name}, cycled",
+                "profile": args.profile,
             },
             "client_python": platform.python_version(),
             "runs": [asdict(result) for result in results],

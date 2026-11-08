@@ -91,11 +91,13 @@ typecheck:
 # Fixed load profile: see scripts/benchmark.py. Results land in bench-results/ (gitignored);
 # copy the ones worth keeping to docs/benchmarks/. The client is standard library only.
 BENCH_URL ?= http://localhost:$(PORT)
-BENCH_OUTPUT ?= bench-results/bench-$(shell date -u +%Y%m%dT%H%M%SZ).json
+# BENCH_PROFILE: complete (default) | one-null | one-null-knn | zipcode-only (see benchmark.py).
+BENCH_PROFILE ?= complete
+BENCH_OUTPUT ?= bench-results/bench-$(BENCH_PROFILE)-$(shell date -u +%Y%m%dT%H%M%SZ).json
 bench:
 	$(call require,uv)
 	@mkdir -p $(dir $(BENCH_OUTPUT))
-	$(UV_RUN) python scripts/benchmark.py --base-url $(BENCH_URL) --output $(BENCH_OUTPUT)
+	$(UV_RUN) python scripts/benchmark.py --base-url $(BENCH_URL) --profile $(BENCH_PROFILE) --output $(BENCH_OUTPUT)
 
 # The KNN imputer artifact is committed (like model.pkl) and baked into the image. Fit it once
 # in the locked environment; check-imputer refits in memory and fails on any difference.
