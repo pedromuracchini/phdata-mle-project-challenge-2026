@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from typing import Any
 
@@ -138,3 +139,38 @@ def test_wrong_type_is_still_rejected(
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["body", field]
+
+
+@pytest.mark.parametrize("token", ["NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize("field", HOUSE_FEATURES)
+def test_non_finite_numbers_are_rejected(
+    test_client: TestClient, sample_home_features: dict[str, Any], field: str, token: str
+) -> None:
+    # Python's JSON parser accepts these tokens. Infinity used to crash the model (500) and NaN
+    # was silently imputed; "missing" must be written as null or by omitting the field.
+    body = json.dumps({**sample_home_features, field: "__TOKEN__"}).replace('"__TOKEN__"', token)
+
+    response = test_client.post(
+        "/predict", content=body, headers={"content-type": "application/json"}
+    )
+
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"][0]["loc"] == ["body", field]
+
+
+def test_validation_error_body_is_unchanged_for_ordinary_errors(
+    test_client: TestClient, sample_home_features: dict[str, Any]
+) -> None:
+    response = test_client.post("/predict", json={**sample_home_features, "zipcode": 98042})
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {
+                "type": "string_type",
+                "loc": ["body", "zipcode"],
+                "msg": "Input should be a valid string",
+                "input": 98042,
+            }
+        ]
+    }

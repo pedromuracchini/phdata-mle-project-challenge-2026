@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.endpoints import router as api_router
+from api.errors import register_error_handlers
 from core.artifacts import load_imputer
 from core.config import get_settings
 
@@ -31,6 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+register_error_handlers(app)
 app.include_router(api_router)
 
 if __name__ == "__main__":

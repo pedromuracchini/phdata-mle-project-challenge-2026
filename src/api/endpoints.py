@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from core.artifacts import ImputerArtifact
 from core.config import get_settings
@@ -22,6 +22,10 @@ ZipCode = Annotated[str, StringConstraints(pattern=r"^[0-9]{5}$")]
 
 class HomeFeatures(BaseModel):
     """Request body. Every field except ``zipcode`` may be omitted or ``null`` (imputed)."""
+
+    # NaN and +/-Infinity (accepted by Python's JSON parser) are invalid input, not "missing":
+    # Infinity crashed the model and NaN was silently imputed. Missing means null or omitted.
+    model_config = ConfigDict(allow_inf_nan=False)
 
     bedrooms: int | None = None
     bathrooms: float | None = None
