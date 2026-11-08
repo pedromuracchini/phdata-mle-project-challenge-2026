@@ -1,6 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
 	setup test test-hooks test-docker lint typecheck bench docker-build docker-run \
-	fit-imputer check-imputer
+	fit-imputer check-imputer evaluate-imputation
 
 # Build the test Docker image
 test-build:
@@ -107,6 +107,12 @@ check-imputer:
 	$(call require,uv)
 	$(UV_RUN) python scripts/fit_imputer.py --check
 
+# Imputation evaluation (about 6 minutes): writes docs/imputation/evaluation_results.json and
+# evaluation_tables.md; the analysis is docs/imputation_report.md.
+evaluate-imputation:
+	$(call require,uv)
+	$(UV_RUN) python scripts/evaluate_imputation.py
+
 # The image bakes src/model/imputer.joblib in: refuse to build without a valid artifact.
 docker-build: check-imputer
 	docker build -t $(IMAGE) .
@@ -137,6 +143,7 @@ help:
 	@echo "  bench             - Benchmark the running API (BENCH_URL=$(BENCH_URL))"
 	@echo "  fit-imputer       - Fit the KNN imputer and write src/model/imputer.joblib"
 	@echo "  check-imputer     - Refit in memory; fail if the committed imputer differs"
+	@echo "  evaluate-imputation - Compare imputation methods (docs/imputation/)"
 	@echo "  docker-build      - Build the API image (runs check-imputer first)"
 	@echo "  docker-run        - Run the API on port $(PORT)"
 	@echo ""

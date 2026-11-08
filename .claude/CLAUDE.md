@@ -28,6 +28,7 @@ Always use the Makefile targets; do not invent ad-hoc commands.
 | Benchmark | `make bench` |
 | Fit imputer artifact | `make fit-imputer` |
 | Verify imputer artifact | `make check-imputer` |
+| Evaluate imputation | `make evaluate-imputation` |
 | Build image | `make docker-build` (runs `check-imputer` first) |
 | Run API in Docker | `make docker-run` |
 

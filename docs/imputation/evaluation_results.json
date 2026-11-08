@@ -1,0 +1,427 @@
+{
+  "data": {
+    "fit": "model train split",
+    "n_train": 16209,
+    "n_eval": 5297,
+    "n_excluded_copies": 107
+  },
+  "complete_mape_pct": 17.765699319073438,
+  "methods": [
+    "median",
+    "knn",
+    "knn+scaled",
+    "knn+sqft_fill",
+    "knn+rounding",
+    "all_candidates"
+  ],
+  "scenarios": {
+    "bedrooms": {
+      "median": {
+        "shift_median_pct": 0.5039165433346569,
+        "shift_p90_pct": 17.329312579813585,
+        "price_mape_pct": 18.5787034369203,
+        "rmse": 0.9971641875036029,
+        "mae": 0.6752878988106475,
+        "nrmse": 1.0684626172621938
+      },
+      "knn": {
+        "shift_median_pct": 0.19369334469667623,
+        "shift_p90_pct": 15.150878294970427,
+        "price_mape_pct": 17.873390472152114,
+        "rmse": 0.7827634772898235,
+        "mae": 0.5607082187921372,
+        "nrmse": 0.8387320003300046
+      },
+      "knn+scaled": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 14.6230860837824,
+        "price_mape_pct": 17.831048557601893,
+        "rmse": 0.7269583729560207,
+        "mae": 0.5151940653535132,
+        "nrmse": 0.7789367644197004
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 0.19369334469667623,
+        "shift_p90_pct": 15.150878294970427,
+        "price_mape_pct": 17.873390472152114,
+        "rmse": 0.7827634772898235,
+        "mae": 0.5607082187921372,
+        "nrmse": 0.8387320003300046
+      },
+      "knn+rounding": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 15.441008048195545,
+        "price_mape_pct": 17.96339112432342,
+        "rmse": 0.8267977306728195,
+        "mae": 0.512554276005286,
+        "nrmse": 0.8859147553952155
+      },
+      "all_candidates": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 14.890771856036206,
+        "price_mape_pct": 17.82026881341973,
+        "rmse": 0.7732306225313132,
+        "mae": 0.46498017745893905,
+        "nrmse": 0.8285175350765366
+      }
+    },
+    "bathrooms": {
+      "median": {
+        "shift_median_pct": 3.230710756366401,
+        "shift_p90_pct": 19.583393161591374,
+        "price_mape_pct": 18.811074412329575,
+        "rmse": 0.7946631502537119,
+        "mae": 0.6144987728903153,
+        "nrmse": 1.0384469260680587
+      },
+      "knn": {
+        "shift_median_pct": 1.2448588549739434,
+        "shift_p90_pct": 13.503058373455247,
+        "price_mape_pct": 17.910616232603115,
+        "rmse": 0.5429600440791694,
+        "mae": 0.38208521060369294,
+        "nrmse": 0.7095272865890101
+      },
+      "knn+scaled": {
+        "shift_median_pct": 0.686155949313844,
+        "shift_p90_pct": 12.660994844327691,
+        "price_mape_pct": 17.890092861318426,
+        "rmse": 0.48969926305123834,
+        "mae": 0.3410413349005985,
+        "nrmse": 0.6399273632494408
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 1.2448588549739434,
+        "shift_p90_pct": 13.503058373455247,
+        "price_mape_pct": 17.910616232603115,
+        "rmse": 0.5429600440791694,
+        "mae": 0.38208521060369294,
+        "nrmse": 0.7095272865890101
+      },
+      "knn+rounding": {
+        "shift_median_pct": 0.8683215854530595,
+        "shift_p90_pct": 13.714019356206764,
+        "price_mape_pct": 17.918889559153516,
+        "rmse": 0.548232869168821,
+        "mae": 0.37761940721162923,
+        "nrmse": 0.7164176891505168
+      },
+      "all_candidates": {
+        "shift_median_pct": 0.31217481789802287,
+        "shift_p90_pct": 12.838267733410467,
+        "price_mape_pct": 17.891924622417587,
+        "rmse": 0.4935514882460937,
+        "mae": 0.335520105720219,
+        "nrmse": 0.644961359617389
+      }
+    },
+    "sqft_living": {
+      "median": {
+        "shift_median_pct": 4.6263345195729535,
+        "shift_p90_pct": 21.05783365618917,
+        "price_mape_pct": 19.80511785580619,
+        "rmse": 973.9616141245926,
+        "mae": 703.3832357938455,
+        "nrmse": 1.073816342155432
+      },
+      "knn": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 8.203634999962071,
+        "price_mape_pct": 18.05310893918036,
+        "rmse": 470.7877786046444,
+        "mae": 233.87238976106477,
+        "nrmse": 0.5190549637904417
+      },
+      "knn+scaled": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 7.273542225317331,
+        "price_mape_pct": 18.164167580021026,
+        "rmse": 351.60971170829595,
+        "mae": 187.24313708906777,
+        "nrmse": 0.387658249583365
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0,
+        "price_mape_pct": 17.765699319073438,
+        "rmse": 0.0,
+        "mae": 0.0,
+        "nrmse": 0.0
+      },
+      "knn+rounding": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 8.203634999962071,
+        "price_mape_pct": 18.05310893918036,
+        "rmse": 470.7877786046444,
+        "mae": 233.87238976106477,
+        "nrmse": 0.5190549637904417
+      },
+      "all_candidates": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0,
+        "price_mape_pct": 17.765699319073438,
+        "rmse": 0.0,
+        "mae": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "sqft_lot": {
+      "median": {
+        "shift_median_pct": 4.011030333416897,
+        "shift_p90_pct": 21.723624170573085,
+        "price_mape_pct": 18.493808984629606,
+        "rmse": 49546.56585073184,
+        "mae": 10966.482914857466,
+        "nrmse": 1.2761280080964672
+      },
+      "knn": {
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098,
+        "price_mape_pct": 19.148423517984394,
+        "rmse": 48086.470662502106,
+        "mae": 12295.798698877432,
+        "nrmse": 1.238521600221494
+      },
+      "knn+scaled": {
+        "shift_median_pct": 3.321339606974813,
+        "shift_p90_pct": 22.09475489319362,
+        "price_mape_pct": 18.834922701498478,
+        "rmse": 45480.110626280286,
+        "mae": 11334.838229533583,
+        "nrmse": 1.1713918408870867
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098,
+        "price_mape_pct": 19.148423517984394,
+        "rmse": 48086.470662502106,
+        "mae": 12295.798698877432,
+        "nrmse": 1.238521600221494
+      },
+      "knn+rounding": {
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098,
+        "price_mape_pct": 19.148423517984394,
+        "rmse": 48086.470662502106,
+        "mae": 12295.798698877432,
+        "nrmse": 1.238521600221494
+      },
+      "all_candidates": {
+        "shift_median_pct": 3.321339606974813,
+        "shift_p90_pct": 22.09475489319362,
+        "price_mape_pct": 18.834922701498478,
+        "rmse": 45480.110626280286,
+        "mae": 11334.838229533583,
+        "nrmse": 1.1713918408870867
+      }
+    },
+    "floors": {
+      "median": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 10.0674873792228,
+        "price_mape_pct": 17.868653565717395,
+        "rmse": 0.5299684219116482,
+        "mae": 0.48168774778176326,
+        "nrmse": 0.975943073008771
+      },
+      "knn": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.908671230269619,
+        "price_mape_pct": 17.590414765275707,
+        "rmse": 0.3270196745394983,
+        "mae": 0.1969316986913903,
+        "nrmse": 0.6022105712510029
+      },
+      "knn+scaled": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.193209671809631,
+        "price_mape_pct": 17.58368299797687,
+        "rmse": 0.30170113160716683,
+        "mae": 0.1653998290681643,
+        "nrmse": 0.5555861770949234
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.908671230269619,
+        "price_mape_pct": 17.590414765275707,
+        "rmse": 0.3270196745394983,
+        "mae": 0.1969316986913903,
+        "nrmse": 0.6022105712510029
+      },
+      "knn+rounding": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.235314034690753,
+        "price_mape_pct": 17.597496209537216,
+        "rmse": 0.3441163823129832,
+        "mae": 0.17811969039078723,
+        "nrmse": 0.6336943594031381
+      },
+      "all_candidates": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 5.7597280323454685,
+        "price_mape_pct": 17.609476899209973,
+        "rmse": 0.31661557437521204,
+        "mae": 0.14668680385123656,
+        "nrmse": 0.5830512986105711
+      }
+    },
+    "sqft_above": {
+      "median": {
+        "shift_median_pct": 4.453954249552098,
+        "shift_p90_pct": 22.71753561668645,
+        "price_mape_pct": 20.07748223234123,
+        "rmse": 883.8868572400751,
+        "mae": 630.3588823862564,
+        "nrmse": 1.0755225596055908
+      },
+      "knn": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 9.023105636040297,
+        "price_mape_pct": 18.27336762815938,
+        "rmse": 403.18710137983055,
+        "mae": 216.13606932638768,
+        "nrmse": 0.490602184797746
+      },
+      "knn+scaled": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 7.636453018026132,
+        "price_mape_pct": 18.22683227201771,
+        "rmse": 319.05014233882343,
+        "mae": 182.12351542391767,
+        "nrmse": 0.3882234733099744
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0,
+        "price_mape_pct": 17.765699319073438,
+        "rmse": 0.0,
+        "mae": 0.0,
+        "nrmse": 0.0
+      },
+      "knn+rounding": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 9.023105636040297,
+        "price_mape_pct": 18.27336762815938,
+        "rmse": 403.18710137983055,
+        "mae": 216.13606932638768,
+        "nrmse": 0.490602184797746
+      },
+      "all_candidates": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0,
+        "price_mape_pct": 17.765699319073438,
+        "rmse": 0.0,
+        "mae": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "sqft_basement": {
+      "median": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 15.848042229685392,
+        "price_mape_pct": 17.897421486713597,
+        "rmse": 546.8059153672459,
+        "mae": 302.9197659052294,
+        "nrmse": 1.2467106106419288
+      },
+      "knn": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 9.32541930852973,
+        "price_mape_pct": 17.73321012736758,
+        "rmse": 294.8235020548119,
+        "mae": 157.64858156292232,
+        "nrmse": 0.6721938771117464
+      },
+      "knn+scaled": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 9.424526167608136,
+        "price_mape_pct": 17.737332900994314,
+        "rmse": 271.627864285453,
+        "mae": 145.2167184276071,
+        "nrmse": 0.6193081146959459
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0,
+        "price_mape_pct": 17.765699319073438,
+        "rmse": 0.0,
+        "mae": 0.0,
+        "nrmse": 0.0
+      },
+      "knn+rounding": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 9.32541930852973,
+        "price_mape_pct": 17.73321012736758,
+        "rmse": 294.8235020548119,
+        "mae": 157.64858156292232,
+        "nrmse": 0.6721938771117464
+      },
+      "all_candidates": {
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0,
+        "price_mape_pct": 17.765699319073438,
+        "rmse": 0.0,
+        "mae": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "all 7 (zipcode only)": {
+      "median": {
+        "shift_median_pct": 22.073723458884995,
+        "shift_p90_pct": 53.535355725446564,
+        "price_mape_pct": 30.631396541290908
+      },
+      "knn": {
+        "shift_median_pct": 22.489212955377134,
+        "shift_p90_pct": 61.617299661960715,
+        "price_mape_pct": 35.04759220752894
+      },
+      "knn+scaled": {
+        "shift_median_pct": 26.029559959690964,
+        "shift_p90_pct": 83.70234604105572,
+        "price_mape_pct": 43.53420971659964
+      },
+      "knn+sqft_fill": {
+        "shift_median_pct": 22.489212955377134,
+        "shift_p90_pct": 61.617299661960715,
+        "price_mape_pct": 35.04759220752894
+      },
+      "knn+rounding": {
+        "shift_median_pct": 21.892824248513772,
+        "shift_p90_pct": 59.92769508059692,
+        "price_mape_pct": 34.52060511333862
+      },
+      "all_candidates": {
+        "shift_median_pct": 25.445487641310592,
+        "shift_p90_pct": 85.88006278377655,
+        "price_mape_pct": 43.80396153413608
+      }
+    }
+  },
+  "future_unseen_appendix": {
+    "n_leaked": 76,
+    "n_clean": 24,
+    "rows": {
+      "leaked": {
+        "bedrooms": 0.0,
+        "bathrooms": 0.0,
+        "sqft_living": 0.0,
+        "sqft_lot": 0.0,
+        "floors": 0.0,
+        "sqft_above": 0.0,
+        "sqft_basement": 0.0,
+        "all 7 (zipcode only)": 16.61891240543188
+      },
+      "clean": {
+        "bedrooms": 0.0,
+        "bathrooms": 0.0,
+        "sqft_living": 0.0,
+        "sqft_lot": 6.048058579616841,
+        "floors": 0.0,
+        "sqft_above": 0.0,
+        "sqft_basement": 0.0,
+        "all 7 (zipcode only)": 22.208121120834978
+      }
+    }
+  }
+}

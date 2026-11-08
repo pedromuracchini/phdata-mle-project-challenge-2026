@@ -60,22 +60,36 @@ def read_model_features(settings: Settings) -> list[str]:
     return features
 
 
-def load_model_train_split(settings: Settings) -> tuple[pd.DataFrame, pd.Series]:
-    """The model's training rows and prices, rebuilt exactly as ``create_model.py`` does.
+@dataclass(frozen=True)
+class ModelSplit:
+    """The model's train and held-out rows (features in model order) and prices."""
+
+    x_train: pd.DataFrame
+    x_test: pd.DataFrame
+    y_train: pd.Series
+    y_test: pd.Series
+
+
+def load_model_split(settings: Settings) -> ModelSplit:
+    """The model's train/held-out split, rebuilt exactly as ``create_model.py`` does.
 
     Sales are left-joined with demographics on ``zipcode`` (kept as a string), ``zipcode`` and
-    ``price`` are dropped from the features, then ``train_test_split(random_state=42)`` keeps
-    the default 75 % train part. Columns are returned in the model's feature order.
+    ``price`` are dropped from the features, then ``train_test_split(random_state=42)`` with
+    the default 75 % / 25 %. Columns are returned in the model's feature order.
     """
     sales = pd.read_csv(settings.sales_path, usecols=SALES_COLUMNS, dtype={"zipcode": str})
     demographics = pd.read_csv(settings.demographics_path, dtype={"zipcode": str})
     merged = sales.merge(demographics, how="left", on="zipcode").drop(columns="zipcode")
     y = merged.pop(TARGET)
-    x_train, _x_test, y_train, _y_test = train_test_split(
-        merged, y, random_state=SPLIT_RANDOM_STATE
-    )
+    x_train, x_test, y_train, y_test = train_test_split(merged, y, random_state=SPLIT_RANDOM_STATE)
     features = read_model_features(settings)
-    return x_train[features], y_train
+    return ModelSplit(x_train[features], x_test[features], y_train, y_test)
+
+
+def load_model_train_split(settings: Settings) -> tuple[pd.DataFrame, pd.Series]:
+    """The model's training rows and prices (the imputer's fit data)."""
+    split = load_model_split(settings)
+    return split.x_train, split.y_train
 
 
 def fit_imputer(x_train: pd.DataFrame) -> Any:
