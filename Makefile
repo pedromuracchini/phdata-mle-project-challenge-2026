@@ -1,5 +1,5 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
-	setup test test-hooks test-docker lint typecheck bench docker-build docker-run \
+	setup test test-hooks test-docker lint typecheck bench docker-build docker-run docker-dev \
 	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence
 
 # Build the test Docker image
@@ -161,9 +161,18 @@ check-equivalence: check-imputer
 docker-build: check-imputer
 	docker build -t $(IMAGE) .
 
-# Runs in the foreground; Ctrl+C stops and removes the container.
+# Runs in the foreground; Ctrl+C stops and removes the container. WORKERS=N sets the number of
+# uvicorn worker processes (WEB_CONCURRENCY; the image's default is 1).
 docker-run:
-	docker run --rm -p $(PORT):8000 --name $(CONTAINER) $(IMAGE)
+	docker run --rm -p $(PORT):8000 --name $(CONTAINER) \
+		$(if $(WORKERS),-e WEB_CONCURRENCY=$(WORKERS)) $(IMAGE)
+
+# Development only: the host's src/ is mounted and uvicorn reloads on every change. One process
+# (--reload and workers are exclusive). Not for benchmarks: the reloader polls the source tree.
+docker-dev: docker-build
+	docker run --rm -p $(PORT):8000 --name $(CONTAINER)-dev -v "$(CURDIR)/src:/src:ro" \
+		$(IMAGE) uvicorn main:app --app-dir /src --host 0.0.0.0 --port 8000 \
+		--reload --reload-dir /src
 
 # Display help information
 help:
@@ -191,7 +200,8 @@ help:
 	@echo "  check-imputer     - Refit in memory; fail if the committed imputer differs"
 	@echo "  evaluate-imputation - Compare imputation methods (docs/imputation/)"
 	@echo "  docker-build      - Build the API image (runs check-imputer first)"
-	@echo "  docker-run        - Run the API on port $(PORT)"
+	@echo "  docker-run        - Run the API on port $(PORT) (WORKERS=N for N processes)"
+	@echo "  docker-dev        - Run the API with src/ mounted and auto-reload (development)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-unit              # Quick unit tests"

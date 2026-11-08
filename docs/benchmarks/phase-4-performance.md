@@ -380,3 +380,61 @@ from a separate connection (client on CPUs 12–15).
 
 Throughput per process is not where this service scales. Step 8 adds workers, and the
 `def`-versus-`async` cost is measured again there with several processes.
+
+## Step 8a: serve without `--reload`; worker count from `WEB_CONCURRENCY`
+
+From this step on, the server is pinned to CPUs 0–11 (6 physical cores) and the client to
+12–15, as planned.
+
+- **No `--reload` in the production `CMD`.** v0 shipped uvicorn's development reloader. Without
+  `watchfiles` installed it uses `StatReload`, which polls every `*.py` under `/app` (3,889
+  files, `.venv` included) four times a second. It also serves from a child process.
+  `make docker-dev` keeps reload for development: it mounts `src/` read-only and runs
+  `--reload --reload-dir /src`. It was checked to reload on a change.
+- **Workers via uvicorn's own `WEB_CONCURRENCY`** (image default 1; `make docker-run
+  WORKERS=N`). It applies only when `--workers` is not on the command line.
+  `tests/unit/test_server_command.py` pins the `CMD` (no `--reload`, no `--workers`) and
+  keeps `--reload` in the dev target only.
+
+Control: `facff53` (with `--reload`). Candidate: the working tree, 1 worker.
+[json](phase4-step8a-no-reload.json)
+
+| Profile | Arm | req/s | p50 ms | p95 ms | p99 ms | server CPU ms/req | server cores | MiB |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| complete | control | 130.7 | 62.3 | 67.9 | 108.2 | 8.5 | 1.1 | 176.5 |
+| complete | candidate | 356.4 | 21.8 | 26.4 | 29.2 | 3.9 | 1.4 | 140.6 |
+| complete | **ratio** | **2.73** | **0.351** | 0.389 | **0.270** | **0.459** | | 0.80 |
+| one-null-knn | control | 69.8 | 116.2 | 135.3 | 156.3 | 38.3 | 2.7 | 227.7 |
+| one-null-knn | candidate | 89.9 | 88.7 | 107.4 | 118.7 | 26.5 | 2.4 | 182.5 |
+| one-null-knn | ratio | 1.29 | 0.763 | 0.794 | 0.759 | 0.692 | | 0.80 |
+| zipcode-only | control | 66.3 | 124.1 | 145.3 | 167.6 | 39.7 | 2.6 | 217.9 |
+| zipcode-only | candidate | 75.6 | 105.2 | 121.6 | 130.3 | 27.2 | 2.1 | 210.4 |
+| zipcode-only | ratio | 1.14 | 0.847 | 0.837 | 0.777 | 0.685 | | 0.97 |
+
+- **Complete requests: 2.73× throughput, p50 62 → 22 ms, p99 −73%, CPU per request −54%.**
+  KNN requests: 1.14–1.29×, CPU per request −31%. Memory −20% for complete and one-null
+  (the reloader process is gone).
+- **Most of the latency gain is not the polling: it is `TCP_NODELAY`.** Serving from a child
+  process (`--reload`, or `--workers` > 1), uvicorn 0.54 binds the socket itself with
+  `socket.socket(family=...)`, so `proto` is 0. asyncio sets `TCP_NODELAY` on accepted
+  connections only when `proto == IPPROTO_TCP`, so those connections keep Nagle. h11 writes the
+  response head and body in two writes, and the body waits for the client's delayed ACK.
+  Minimal experiment: the same image, the benchmark's own client, one keep-alive connection,
+  200 sequential complete requests:
+
+  | Server | p50 ms | p90 ms |
+  | --- | ---: | ---: |
+  | 1 worker (in-process server) | 4.2 | 5.1 |
+  | 2 workers | 48.0 | 48.5 |
+  | 2 workers, `TCP_NODELAY` forced (4-line `sitecustomize`) | 4.0 | 4.7 |
+  | 1 worker, `TCP_NODELAY` forced | 4.3 | 4.9 |
+
+  This is the flat ~48 ms floor seen on complete requests in every earlier step, main
+  included, because they all ran `--reload`. It is server-side, not a client artifact. The fix
+  is step 10. It comes before the worker measurements (step 8b), because without it any
+  `WEB_CONCURRENCY` > 1 brings the floor back: a first sweep of 2, 4, 6 and 12 workers gave
+  complete requests 0.41–0.46× of one worker (json: [2](phase4-step8a-sweep-before-nodelay-2.json),
+  [4](phase4-step8a-sweep-before-nodelay-4.json), [6](phase4-step8a-sweep-before-nodelay-6.json),
+  [12](phase4-step8a-sweep-before-nodelay-12.json)). Memory from that sweep (not affected by the
+  floor): each worker is 200–250 MiB RSS under KNN load, the supervisor 30 MiB, and the
+  container about 122 MiB more per extra worker (352 MiB with 2 workers, 1,575 MiB with 12).

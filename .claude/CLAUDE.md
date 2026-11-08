@@ -30,7 +30,8 @@ Always use the Makefile targets; do not invent ad-hoc commands.
 | Verify imputer artifact | `make check-imputer` |
 | Evaluate imputation | `make evaluate-imputation` |
 | Build image | `make docker-build` (runs `check-imputer` first) |
-| Run API in Docker | `make docker-run` |
+| Run API in Docker | `make docker-run` (`WORKERS=N` for N worker processes) |
+| Run API with auto-reload (dev) | `make docker-dev` |
 
 Run `make lint typecheck test` before declaring any task done. A task is not done while any of
 them fails.
@@ -178,6 +179,9 @@ command, fix the cause or ask the human — never look for a way around it.
   `tests/unit/test_thread_limits.py` keeps them in sync). Scale with workers, not threads.
   The OpenMP count is part of the results: scikit-learn's KNN breaks exact distance ties by
   thread chunking, so changing it changes predictions (baseline row 99). Ask before changing it.
+- Worker processes come from `WEB_CONCURRENCY` (uvicorn's own variable; image default in the
+  `Dockerfile`). Keep workers x threads <= the cores the container gets. Never put `--reload` or
+  `--workers` in the production `CMD` (`tests/unit/test_server_command.py`).
 
 ## Decisions and AI log
 

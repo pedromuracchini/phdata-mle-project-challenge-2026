@@ -52,4 +52,9 @@ ENV OMP_NUM_THREADS=1 \
 
 COPY src .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Worker processes: uvicorn reads WEB_CONCURRENCY when --workers is not given, so set it at
+# deploy time to the cores the container gets (threads per worker are 1, above). Every worker
+# loads its own copy of the artifacts. No --reload here: it is a development tool (it polled
+# every *.py under /app, .venv included, 4 times a second); `make docker-dev` runs with it.
+ENV WEB_CONCURRENCY=1
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
