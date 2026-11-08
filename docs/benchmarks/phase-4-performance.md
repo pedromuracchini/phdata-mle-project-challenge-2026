@@ -73,3 +73,80 @@ Both arms are `main` at `1697b6a` (the same image), server unpinned.
   That looks like thread oversubscription in the distance computation, not single-threaded
   work. Step 3 profiles it before anything is changed.
 - **The client uses 0.01–0.02 cores,** so it is far from being the bottleneck.
+
+## Step 3: where the time goes on main
+
+Two tools:
+
+- **cProfile and per-step timings without the profiler.** `scripts/profile_predict.py`, run
+  inside main's image. It calls the handler directly, so HTTP handling is excluded. It now
+  takes `--payload complete|knn|zipcode-only` and times the imputation step.
+- **Per-thread CPU of the worker under KNN load,** from `top -H`.
+
+### Handler time per step (ms, median of 30 calls after 1 warm-up, no profiler)
+
+| Step | complete | KNN (`bedrooms` null) | KNN, `OMP_NUM_THREADS=1` | KNN, `OPENBLAS_NUM_THREADS=1` | KNN, all thread vars = 1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 `pickle.load` model.pkl | 0.87 | 1.67 | 0.88 | 0.89 | 0.86 |
+| 2 `json.load` features | 0.10 | 0.15 | 0.10 | 0.10 | 0.10 |
+| 3 `pd.DataFrame` of the request | 0.39 | 0.78 | 0.49 | 0.51 | 0.49 |
+| 4 `pd.read_csv` demographics | 1.70 | 5.29 | 1.68 | 1.77 | 1.71 |
+| 5 filter zipcode | 0.49 | 0.78 | 0.48 | 0.51 | 0.49 |
+| 6 `pd.concat` | 0.16 | 0.23 | 0.15 | 0.15 | 0.15 |
+| 7 `print(DataFrame)` | **14.59** | 32.12 | **14.30** | 14.47 | 14.45 |
+| 8 select model features | 0.27 | 0.30 | 0.27 | 0.27 | 0.27 |
+| 9 `impute_missing` | 0.26 | 30.71 | **12.37** | 12.30 | 12.14 |
+| 10 `model.predict` | 1.84 | **108.24** | 1.87 | 1.77 | 1.88 |
+| **sum** | **20.68** | **180.26** | **32.58** | 32.74 | 32.53 |
+
+Reports:
+[complete](phase4-profile-main-complete.txt), [complete, threads = 1](phase4-profile-main-complete-threads1.txt),
+[KNN](phase4-profile-main-knn.txt), [KNN, OMP = 1](phase4-profile-main-knn-omp1.txt),
+[KNN, OpenBLAS = 1](phase4-profile-main-knn-openblas1.txt),
+[KNN, all = 1](phase4-profile-main-knn-threads1.txt). The `.prof` dumps are gitignored.
+
+### Thread pools under KNN load (main, `top -H` on the worker, 8 clients)
+
+- **Default:** the worker has **38 threads**. About 16 run at 60–80% CPU and 3 more at about
+  30%, all during single-row requests. 5.7 req/s, p50 1,424 ms (one informational run).
+- **`OMP_NUM_THREADS=1`:** **1 thread.** OpenBLAS also follows `OMP_NUM_THREADS` when
+  `OPENBLAS_NUM_THREADS` is unset. 28.2 req/s, p50 280 ms (one informational run, not an A/B;
+  step 7 measures this properly).
+
+py-spy was tried and its result isn't used:
+
+- It samples Python threads only. The OpenMP and OpenBLAS workers have no Python frames, so they
+  never appear (1 thread sampled).
+- `--native` stops the whole process at every sample, which also stops the threads that compete
+  with each other. That hides the contention being measured and inflated `print` to 56% of
+  samples.
+
+### Findings
+
+1. **A KNN request is dominated by two thread pools fighting, not by KNN.**
+   - The imputer's `nan_euclidean_distances` runs on numpy's OpenBLAS pool (pthreads). The
+     model's `KNeighborsRegressor` runs on scikit-learn's OpenMP pool. Each pool has 16 threads.
+   - After the imputer, OpenBLAS's threads keep busy-waiting, and `model.predict` takes 108 ms
+     instead of 1.9 ms. Every other step slows down 2–3× as well.
+   - Limiting **either** pool to one thread removes it: 180 → 32.5 ms. That accounts for the
+     14.6 busy cores and 2.4 CPU-s per request measured in step 2.
+2. **Complete requests: `print` is 70% of the handler** (14.6 of 20.7 ms), as Phase 1 found.
+   - Disk reads (pickle, JSON, CSV) cost about 2.7 ms and the pandas glue about 1.3 ms.
+     `predict` is 1.8 ms.
+   - Thread limits don't change the complete handler's wall time (20.7 vs 20.4 ms). But the
+     server burns 73 CPU-ms per complete request against about 22 ms of wall time (3.3 cores
+     busy, step 2), which looks like OpenMP threads spinning after `predict`. Step 7 will show
+     whether CPU drops.
+3. **With thread limits, KNN imputation is the largest remaining cost:** 12.1 ms of the 32.5 ms
+   handler. `nan_euclidean_distances` is about 2/3 of the KNN transform under cProfile; the rest
+   is scikit-learn's input validation and per-column bookkeeping. That makes step 9 worth doing
+   after steps 4–8.
+4. **The async route serializes all of this.** Under 8 clients the p50 is about 8× the service
+   time (step 2: 176 ms p50 for about 22 ms per complete request).
+
+### Consequence for the order of the steps
+
+Step 6 (`def` route) runs requests in the threadpool, up to 40 at a time. Before the thread limit
+(step 7), each of those requests would bring the two 16-thread pools into play concurrently,
+which is the contention measured above, multiplied. **Proposed order: step 7 (thread limits)
+before step 6 (`def` route)**, so each is measured on its own without the other's artefact.

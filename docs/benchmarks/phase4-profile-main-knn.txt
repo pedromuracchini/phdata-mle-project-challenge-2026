@@ -1,0 +1,192 @@
+cProfile of the POST /predict handler (/scripts/profile_predict.py)
+generated_at: 2026-11-08T18:38:12Z
+python: 3.12.16  cwd: /app
+OMP_NUM_THREADS=(unset)  OPENBLAS_NUM_THREADS=(unset)  MKL_NUM_THREADS=(unset)  cpu_count=16
+payload (knn): {'bedrooms': None, 'bathrooms': 2.0, 'sqft_living': 1500.0, 'sqft_lot': 5000.0, 'floors': 1.0, 'sqft_above': 1200.0, 'sqft_basement': 300.0, 'zipcode': '98042'}
+warm-up result: {'predicted_price': 253980.0, 'imputed_fields': ['bedrooms']}  profiled result: {'predicted_price': 253980.0, 'imputed_fields': ['bedrooms']}
+single profiled call, wall time under profiler: 96.4 ms
+aggregate: 30 calls, mean wall time under profiler: 199.4 ms
+Scope: handler body only (no HTTP parsing, no uvicorn). Times include cProfile overhead.
+====================================================================================================
+SINGLE CALL (sorted by cumulative, top 30)
+====================================================================================================
+         76265 function calls (74850 primitive calls) in 0.096 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1281 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.096    0.096 profile_predict.py:180(call)
+        1    0.000    0.000    0.096    0.096 runners.py:160(run)
+        3    0.000    0.000    0.095    0.032 base_events.py:655(run_until_complete)
+        3    0.000    0.000    0.095    0.032 base_events.py:631(run_forever)
+        1    0.000    0.000    0.095    0.095 runners.py:86(run)
+        6    0.000    0.000    0.095    0.016 base_events.py:1922(_run_once)
+        6    0.000    0.000    0.095    0.016 events.py:86(_run)
+        6    0.000    0.000    0.095    0.016 {method 'run' of '_contextvars.Context' objects}
+        1    0.000    0.000    0.094    0.094 endpoints.py:74(predict)
+        1    0.000    0.000    0.041    0.041 imputation.py:73(impute_missing)
+        2    0.000    0.000    0.037    0.019 _set_output.py:314(wrapped)
+        1    0.000    0.000    0.035    0.035 _knn.py:254(transform)
+        2    0.001    0.000    0.033    0.016 pairwise.py:2070(pairwise_distances_chunked)
+        1    0.000    0.000    0.031    0.031 {built-in method builtins.print}
+        1    0.000    0.000    0.031    0.031 frame.py:1208(__repr__)
+        1    0.000    0.000    0.031    0.031 _decorators.py:325(wrapper)
+        1    0.000    0.000    0.031    0.031 frame.py:1314(to_string)
+        1    0.000    0.000    0.031    0.031 format.py:939(to_string)
+        1    0.000    0.000    0.031    0.031 string.py:28(to_string)
+        1    0.000    0.000    0.031    0.031 string.py:40(_get_string_representation)
+      5/3    0.000    0.000    0.031    0.010 _param_validation.py:187(wrapper)
+        1    0.000    0.000    0.030    0.030 pairwise.py:2254(pairwise_distances)
+        1    0.000    0.000    0.030    0.030 pairwise.py:1951(_parallel_pairwise)
+        1    0.020    0.020    0.030    0.030 pairwise.py:445(nan_euclidean_distances)
+        1    0.000    0.000    0.020    0.020 string.py:153(_fit_strcols_to_terminal_width)
+        2    0.000    0.000    0.013    0.007 string.py:34(_get_strcols)
+        2    0.000    0.000    0.013    0.007 format.py:472(get_strcols)
+        2    0.000    0.000    0.013    0.007 format.py:704(_get_strcols_without_index)
+        1    0.000    0.000    0.011    0.011 pipeline.py:739(predict)
+       40    0.000    0.000    0.011    0.000 format.py:751(format_col)
+
+
+
+====================================================================================================
+SINGLE CALL (sorted by tottime, top 30)
+====================================================================================================
+         76265 function calls (74850 primitive calls) in 0.096 seconds
+
+   Ordered by: internal time
+   List reduced from 1281 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.020    0.020    0.030    0.030 pairwise.py:445(nan_euclidean_distances)
+        1    0.006    0.006    0.007    0.007 _dispatcher.py:188(compute)
+        1    0.003    0.003    0.003    0.003 extmath.py:153(safe_sparse_dot)
+15403/15235    0.003    0.000    0.005    0.000 {built-in method builtins.isinstance}
+      336    0.002    0.000    0.002    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+       95    0.002    0.000    0.002    0.000 {built-in method numpy.array}
+        1    0.001    0.001    0.001    0.001 {built-in method _pickle.load}
+  147/146    0.001    0.000    0.010    0.000 series.py:392(__init__)
+        1    0.001    0.001    0.005    0.005 pairwise.py:391(_euclidean_distances)
+5354/4189    0.001    0.000    0.001    0.000 {built-in method builtins.len}
+      195    0.001    0.000    0.004    0.000 construction.py:517(sanitize_array)
+        2    0.001    0.000    0.033    0.016 pairwise.py:2070(pairwise_distances_chunked)
+        3    0.001    0.000    0.001    0.000 _mask.py:14(_get_dense_mask)
+3577/3575    0.001    0.000    0.001    0.000 {built-in method builtins.getattr}
+      247    0.001    0.000    0.001    0.000 generic.py:281(__init__)
+      555    0.001    0.000    0.001    0.000 __init__.py:280(_compile)
+      378    0.001    0.000    0.002    0.000 generic.py:6323(__setattr__)
+     1947    0.001    0.000    0.002    0.000 generic.py:42(_instancecheck)
+        2    0.001    0.000    0.001    0.000 {built-in method numpy._core._multiarray_umath.c_einsum}
+       36    0.001    0.000    0.001    0.000 object_array.py:46(_str_map)
+      153    0.001    0.000    0.001    0.000 generic.py:6258(__finalize__)
+     1947    0.001    0.000    0.001    0.000 generic.py:37(_check)
+        1    0.001    0.001    0.001    0.001 c_parser_wrapper.py:222(read)
+       37    0.000    0.000    0.005    0.000 format.py:1343(get_result_as_array)
+      458    0.000    0.000    0.001    0.000 config.py:127(_get_single_key)
+      154    0.000    0.000    0.001    0.000 common.py:1606(pandas_dtype)
+  459/409    0.000    0.000    0.001    0.000 {built-in method numpy.asarray}
+      143    0.000    0.000    0.001    0.000 managers.py:1882(from_array)
+      458    0.000    0.000    0.001    0.000 config.py:635(_get_root)
+      151    0.000    0.000    0.001    0.000 numeric.py:290(full)
+
+
+
+====================================================================================================
+AGGREGATE OF 30 CALLS (sorted by cumulative, top 30)
+====================================================================================================
+         2287921 function calls (2245471 primitive calls) in 5.981 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1281 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       30    0.001    0.000    5.983    0.199 profile_predict.py:180(call)
+       30    0.001    0.000    5.982    0.199 runners.py:160(run)
+       90    0.005    0.000    5.956    0.066 base_events.py:655(run_until_complete)
+       90    0.001    0.000    5.944    0.066 base_events.py:631(run_forever)
+      180    0.006    0.000    5.941    0.033 base_events.py:1922(_run_once)
+       30    0.001    0.000    5.938    0.198 runners.py:86(run)
+      180    0.001    0.000    5.932    0.033 events.py:86(_run)
+      180    0.005    0.000    5.931    0.033 {method 'run' of '_contextvars.Context' objects}
+       30    0.004    0.000    5.923    0.197 endpoints.py:74(predict)
+       30    0.001    0.000    2.642    0.088 pipeline.py:739(predict)
+       30    0.003    0.000    2.538    0.085 _regression.py:224(predict)
+       30    0.001    0.000    2.530    0.084 _base.py:763(kneighbors)
+       30    2.510    0.084    2.520    0.084 _dispatcher.py:188(compute)
+       30    0.000    0.000    1.653    0.055 {built-in method builtins.print}
+       30    0.000    0.000    1.652    0.055 frame.py:1208(__repr__)
+       30    0.000    0.000    1.646    0.055 _decorators.py:325(wrapper)
+       30    0.001    0.000    1.646    0.055 frame.py:1314(to_string)
+       30    0.000    0.000    1.638    0.055 format.py:939(to_string)
+       30    0.000    0.000    1.637    0.055 string.py:28(to_string)
+       30    0.000    0.000    1.637    0.055 string.py:40(_get_string_representation)
+       30    0.002    0.000    1.052    0.035 imputation.py:73(impute_missing)
+       30    0.013    0.000    0.938    0.031 string.py:153(_fit_strcols_to_terminal_width)
+       60    0.000    0.000    0.911    0.015 _set_output.py:314(wrapped)
+       30    0.004    0.000    0.824    0.027 _knn.py:254(transform)
+       60    0.000    0.000    0.770    0.013 string.py:34(_get_strcols)
+       60    0.000    0.000    0.768    0.013 format.py:472(get_strcols)
+       60    0.014    0.000    0.764    0.013 format.py:704(_get_strcols_without_index)
+       60    0.038    0.001    0.758    0.013 pairwise.py:2070(pairwise_distances_chunked)
+   150/90    0.002    0.000    0.662    0.007 _param_validation.py:187(wrapper)
+     1200    0.010    0.000    0.653    0.001 format.py:751(format_col)
+
+
+
+====================================================================================================
+AGGREGATE OF 30 CALLS (sorted by tottime, top 30)
+====================================================================================================
+         2287921 function calls (2245471 primitive calls) in 5.981 seconds
+
+   Ordered by: internal time
+   List reduced from 1281 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       30    2.510    0.084    2.520    0.084 _dispatcher.py:188(compute)
+       30    0.452    0.015    0.641    0.021 pairwise.py:445(nan_euclidean_distances)
+462090/457050    0.178    0.000    0.272    0.000 {built-in method builtins.isinstance}
+    10080    0.071    0.000    0.071    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+       30    0.064    0.002    0.074    0.002 {built-in method _pickle.load}
+       30    0.062    0.002    0.063    0.002 extmath.py:153(safe_sparse_dot)
+4410/4380    0.061    0.000    0.516    0.000 series.py:392(__init__)
+160620/125670    0.053    0.000    0.067    0.000 {built-in method builtins.len}
+     2850    0.051    0.000    0.052    0.000 {built-in method numpy.array}
+     5850    0.046    0.000    0.193    0.000 construction.py:517(sanitize_array)
+    16650    0.040    0.000    0.061    0.000 __init__.py:280(_compile)
+       30    0.040    0.001    0.064    0.002 c_parser_wrapper.py:222(read)
+       60    0.038    0.001    0.758    0.013 pairwise.py:2070(pairwise_distances_chunked)
+    58410    0.033    0.000    0.078    0.000 generic.py:42(_instancecheck)
+     7410    0.033    0.000    0.042    0.000 generic.py:281(__init__)
+    11340    0.032    0.000    0.077    0.000 generic.py:6323(__setattr__)
+107310/107250    0.031    0.000    0.033    0.000 {built-in method builtins.getattr}
+    13740    0.030    0.000    0.074    0.000 config.py:127(_get_single_key)
+     1080    0.029    0.000    0.070    0.000 object_array.py:46(_str_map)
+     4590    0.028    0.000    0.040    0.000 generic.py:6258(__finalize__)
+    58410    0.028    0.000    0.043    0.000 generic.py:37(_check)
+     1110    0.028    0.000    0.296    0.000 format.py:1343(get_result_as_array)
+    13680    0.027    0.000    0.128    0.000 config.py:145(_get_option)
+     7770    0.021    0.000    0.096    0.000 format.py:1819(should_trim)
+    13740    0.020    0.000    0.028    0.000 config.py:635(_get_root)
+     1110    0.018    0.000    0.168    0.000 format.py:1805(_trim_zeros_float)
+     4620    0.017    0.000    0.055    0.000 common.py:1606(pandas_dtype)
+     1590    0.017    0.000    0.026    0.000 cast.py:1166(maybe_infer_to_datetimelike)
+    15810    0.017    0.000    0.017    0.000 {method 'match' of 're.Pattern' objects}
+13770/12270    0.017    0.000    0.029    0.000 {built-in method numpy.asarray}
+
+
+
+====================================================================================================
+STEP TIMINGS WITHOUT PROFILER (median of 30 iterations after 1 warm-up, ms)
+OMP_NUM_THREADS=(unset)  OPENBLAS_NUM_THREADS=(unset)  MKL_NUM_THREADS=(unset)
+====================================================================================================
+1 open + pickle.load model.pkl                                 1.67
+2 open + json.load model_features.json                         0.15
+3 pd.DataFrame([features.model_dump()])                        0.78
+4 pd.read_csv zipcode_demographics.csv                         5.29
+5 filter zipcode + drop + reset_index                          0.78
+6 pd.concat(axis=1)                                            0.23
+7 print(DataFrame) (formatting; stdout redirected)            32.12
+8 select model_features                                        0.30
+9 impute_missing (sqft fill + KNN, if anything is missing)    30.71
+10 model.predict                                             108.24
+sum of step medians                                          180.26

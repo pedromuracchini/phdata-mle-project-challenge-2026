@@ -13,7 +13,7 @@ sorted by cumulative and by internal time) and the raw ``.prof`` files to ``--ou
       -v "$PWD/scripts:/scripts:ro" -v "$PWD/docs/benchmarks:/out" \\
       mle-api:v0-original python /scripts/profile_predict.py --out-dir /out
 
-Only the standard library and the service's own modules are used (Python 3.10 compatible).
+Only the standard library and the service's own modules are used.
 """
 
 from __future__ import annotations
@@ -43,7 +43,20 @@ PAYLOAD: dict[str, Any] = {
     "sqft_basement": 300.0,
     "zipcode": "98042",
 }
+# --payload: ``complete`` (no imputation), ``knn`` (one field that always goes to KNN, like the
+# one-null-knn benchmark profile) or ``zipcode-only`` (every house field missing).
+PAYLOADS: dict[str, dict[str, Any]] = {
+    "complete": PAYLOAD,
+    "knn": {**PAYLOAD, "bedrooms": None},
+    "zipcode-only": {"zipcode": PAYLOAD["zipcode"]},
+}
 TOP = 30
+# Thread-pool sizes of OpenMP (scikit-learn's Cython code) and the BLAS numpy links to.
+THREAD_VARS = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+
+
+def thread_env() -> str:
+    return "  ".join(f"{name}={os.environ.get(name, '(unset)')}" for name in THREAD_VARS)
 
 
 def stats_text(profile: cProfile.Profile, sort: str, title: str) -> str:
@@ -53,7 +66,7 @@ def stats_text(profile: cProfile.Profile, sort: str, title: str) -> str:
     return f"\n{'=' * 100}\n{title} (sorted by {sort}, top {TOP})\n{'=' * 100}\n{buffer.getvalue()}"
 
 
-def step_timings(repeat: int) -> str:
+def step_timings(repeat: int, payload: dict[str, Any], imputer: Any) -> str:
     """Median wall time of each handler step, without the profiler.
 
     Repeats the steps of ``api.endpoints.predict`` one by one (same calls, same order) so their
@@ -63,16 +76,13 @@ def step_timings(repeat: int) -> str:
     import json
     import pickle
     import statistics
-    import warnings
 
     import pandas as pd
 
-    # `.dict()` warns on every call (Pydantic v2); one warning per iteration buries the report.
-    warnings.simplefilter("ignore", DeprecationWarning)
-
     from api.endpoints import HomeFeatures
+    from services.imputation import impute_missing
 
-    features = HomeFeatures(**PAYLOAD)
+    features = HomeFeatures(**payload)
     samples: dict[str, list[float]] = {}
 
     def timed(label: str, fn: Any) -> Any:
@@ -92,7 +102,10 @@ def step_timings(repeat: int) -> str:
     def one_iteration() -> None:
         model = timed("1 open + pickle.load model.pkl", read_pickle)
         model_features = timed("2 open + json.load model_features.json", read_features)
-        frame = timed("3 pd.DataFrame([features.dict()])", lambda: pd.DataFrame([features.dict()]))
+        frame = timed(
+            "3 pd.DataFrame([features.model_dump()])",
+            lambda: pd.DataFrame([features.model_dump()]),
+        )
         demographics = timed(
             "4 pd.read_csv zipcode_demographics.csv",
             lambda: pd.read_csv("data/zipcode_demographics.csv", dtype={"zipcode": str}),
@@ -109,7 +122,11 @@ def step_timings(repeat: int) -> str:
         with contextlib.redirect_stdout(io.StringIO()):
             timed("7 print(DataFrame) (formatting; stdout redirected)", lambda: print(merged))
         selected = timed("8 select model_features", lambda: merged[model_features])
-        timed("9 model.predict", lambda: model.predict(selected))
+        imputed = timed(
+            "9 impute_missing (sqft fill + KNN, if anything is missing)",
+            lambda: impute_missing(selected, imputer.imputer, imputer.columns),
+        )
+        timed("10 model.predict", lambda: model.predict(imputed.features))
 
     for _ in range(repeat + 1):  # first iteration discarded below (warm-up)
         one_iteration()
@@ -117,7 +134,7 @@ def step_timings(repeat: int) -> str:
     lines = [
         f"\n{'=' * 100}",
         f"STEP TIMINGS WITHOUT PROFILER (median of {repeat} iterations after 1 warm-up, ms)",
-        f"OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS', '(unset)')}",
+        thread_env(),
         "=" * 100,
     ]
     total = 0.0
@@ -150,12 +167,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--repeat", type=int, default=50)
     parser.add_argument("--name", default="baseline-profile")
+    parser.add_argument("--payload", choices=sorted(PAYLOADS), default="complete")
     args = parser.parse_args(argv)
 
     sys.path.insert(0, os.getcwd())
     from api.endpoints import HomeFeatures, predict  # the service's own route
 
-    features = HomeFeatures(**PAYLOAD)
+    payload = PAYLOADS[args.payload]
+    features = HomeFeatures(**payload)
     request = startup_request()
 
     def call() -> Any:
@@ -189,9 +208,8 @@ def main(argv: list[str] | None = None) -> int:
             f"cProfile of the POST /predict handler ({__file__})",
             f"generated_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}",
             f"python: {platform.python_version()}  cwd: {os.getcwd()}",
-            f"OMP_NUM_THREADS={os.environ.get('OMP_NUM_THREADS', '(unset)')}  "
-            f"cpu_count={os.cpu_count()}",
-            f"payload: {PAYLOAD}",
+            f"{thread_env()}  cpu_count={os.cpu_count()}",
+            f"payload ({args.payload}): {payload}",
             f"warm-up result: {warmup_result}  profiled result: {result}",
             f"single profiled call, wall time under profiler: {single_ms:.1f} ms",
             f"aggregate: {args.repeat} calls, mean wall time under profiler: {aggregate_ms:.1f} ms",
@@ -205,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
         + stats_text(single, "tottime", "SINGLE CALL")
         + stats_text(aggregate, "cumulative", f"AGGREGATE OF {args.repeat} CALLS")
         + stats_text(aggregate, "tottime", f"AGGREGATE OF {args.repeat} CALLS")
-        + step_timings(args.repeat)
+        + step_timings(args.repeat, payload, request.app.state.imputer)
     )
     (args.out_dir / f"{args.name}.txt").write_text(report)
     return 0
