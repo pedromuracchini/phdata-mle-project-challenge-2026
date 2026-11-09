@@ -11,9 +11,10 @@ from starlette.datastructures import State
 
 from api.endpoints import router as api_router
 from api.errors import register_error_handlers
-from api.middleware import RequestIDMiddleware
+from api.middleware import RequestIDMiddleware, RequestLogMiddleware
 from core.artifacts import compute_model_version, load_demographics, load_imputer, load_model
 from core.config import Settings, get_settings
+from core.logging import configure_logging
 
 
 def load_artifacts(state: State, settings: Settings) -> None:
@@ -28,6 +29,7 @@ def load_artifacts(state: State, settings: Settings) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Load every artifact once, before the first request; fail startup if any is invalid."""
+    configure_logging()
     load_artifacts(app.state, get_settings())
     yield
 
@@ -42,7 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Added last, so it is the outermost middleware: every response carries the ID.
+# Added last, so they are the outermost middleware: every response carries the ID, and the
+# request log (inside it) sees the ID and times everything else.
+app.add_middleware(RequestLogMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 register_error_handlers(app)

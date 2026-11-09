@@ -103,6 +103,7 @@ def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
         raise unknown_zipcode_error()
 
     imputation = impute_missing(features, imputer.imputer, imputer.columns)
+    request.state.imputed_fields = imputation.imputed_fields  # for the request log
     prediction = model.model.predict(imputation.features)
 
     return {
