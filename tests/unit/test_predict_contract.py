@@ -84,17 +84,6 @@ def test_several_null_fields_are_listed_in_model_order(
     )
 
 
-def test_extra_fields_are_still_ignored(
-    test_client: TestClient, sample_home_features: dict[str, Any]
-) -> None:
-    payload = {**sample_home_features, "waterfront": 1, "grade": 13, "lat": 47.5}
-
-    response = test_client.post("/predict", json=payload)
-
-    assert_prediction(response, imputed=[])
-    assert response.json()["predicted_price"] == 253980.0
-
-
 def test_missing_zipcode_is_rejected(
     test_client: TestClient, sample_home_features: dict[str, Any]
 ) -> None:

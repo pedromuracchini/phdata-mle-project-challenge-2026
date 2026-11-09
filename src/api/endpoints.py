@@ -40,7 +40,9 @@ class HomeFeatures(BaseModel):
 
     # NaN and +/-Infinity (accepted by Python's JSON parser) are invalid input, not "missing":
     # Infinity crashed the model and NaN was silently imputed. Missing means null or omitted.
-    model_config = ConfigDict(allow_inf_nan=False)
+    # Unknown fields are rejected (ADR 005): every field is nullable, so an ignored misspelled
+    # key ("bathroom") would silently turn into an imputed one.
+    model_config = ConfigDict(allow_inf_nan=False, extra="forbid")
 
     bedrooms: int | None = bounded("bedrooms")
     bathrooms: float | None = bounded("bathrooms")

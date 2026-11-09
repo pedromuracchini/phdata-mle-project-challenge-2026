@@ -12,13 +12,18 @@ from fastapi.responses import JSONResponse
 # are dropped: an error response never echoes the request back (ADR 005). Dropping ``input``
 # also removes the NaN/Infinity values that FastAPI's default handler failed to serialise.
 ERROR_KEYS = ("type", "loc", "msg")
+# ``loc`` names the offending key, and for unknown fields that key comes from the client: cap
+# each part so a 422 cannot carry back an arbitrarily long string.
+MAX_LOC_LENGTH = 64
 
 
 def public_error(error: dict[str, Any]) -> dict[str, Any]:
     """The client-facing part of one validation error: type, location and message."""
     return {
         "type": error["type"],
-        "loc": [part if isinstance(part, int) else str(part) for part in error["loc"]],
+        "loc": [
+            part if isinstance(part, int) else str(part)[:MAX_LOC_LENGTH] for part in error["loc"]
+        ],
         "msg": error["msg"],
     }
 
