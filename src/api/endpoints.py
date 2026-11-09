@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from core.artifacts import ImputerArtifact, ModelArtifact
 from services.imputation import impute_missing
@@ -16,6 +16,24 @@ router = APIRouter()
 # Five ASCII digits, kept as a string: leading zeros matter for the demographics lookup.
 ZipCode = Annotated[str, StringConstraints(pattern=r"^[0-9]{5}$")]
 
+# Sanity bounds (ADR 005). Counts and areas cannot be negative. The upper bounds only reject
+# values that are clearly impossible: 10x the largest value in src/data/kc_house_data.csv
+# (tests/unit/test_input_bounds.py recomputes them). Without them, values near the float
+# maximum overflowed the sqft_living = sqft_above + sqft_basement fill to inf (500).
+UPPER_BOUNDS: dict[str, float] = {
+    "bedrooms": 330,  # max 33
+    "bathrooms": 80.0,  # max 8
+    "sqft_living": 135_400.0,  # max 13,540
+    "sqft_lot": 16_513_590.0,  # max 1,651,359
+    "floors": 35.0,  # max 3.5
+    "sqft_above": 94_100.0,  # max 9,410
+    "sqft_basement": 48_200.0,  # max 4,820
+}
+
+
+def bounded(field: str) -> Any:
+    return Field(default=None, ge=0, le=UPPER_BOUNDS[field])
+
 
 class HomeFeatures(BaseModel):
     """Request body. Every field except ``zipcode`` may be omitted or ``null`` (imputed)."""
@@ -24,13 +42,13 @@ class HomeFeatures(BaseModel):
     # Infinity crashed the model and NaN was silently imputed. Missing means null or omitted.
     model_config = ConfigDict(allow_inf_nan=False)
 
-    bedrooms: int | None = None
-    bathrooms: float | None = None
-    sqft_living: float | None = None
-    sqft_lot: float | None = None
-    floors: float | None = None
-    sqft_above: float | None = None
-    sqft_basement: float | None = None
+    bedrooms: int | None = bounded("bedrooms")
+    bathrooms: float | None = bounded("bathrooms")
+    sqft_living: float | None = bounded("sqft_living")
+    sqft_lot: float | None = bounded("sqft_lot")
+    floors: float | None = bounded("floors")
+    sqft_above: float | None = bounded("sqft_above")
+    sqft_basement: float | None = bounded("sqft_basement")
     zipcode: ZipCode
 
 
