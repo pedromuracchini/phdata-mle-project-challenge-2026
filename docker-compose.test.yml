@@ -8,12 +8,7 @@ services:
     ports:
       - "8000:8000"
     # No volumes: the test runs against the model and data baked into the image.
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
+    # Health comes from the image's HEALTHCHECK (Python, GET /health; see Dockerfile).
     networks:
       - test-network
 
