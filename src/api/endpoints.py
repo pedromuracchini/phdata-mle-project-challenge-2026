@@ -58,16 +58,18 @@ class PredictionResponse(BaseModel):
     imputed_fields: list[str]
 
 
-def unknown_zipcode_error(zipcode: str) -> HTTPException:
-    """422 in the same shape as FastAPI's validation errors, so clients parse one format."""
+def unknown_zipcode_error() -> HTTPException:
+    """422 in the same shape as the validation errors, so clients parse one format.
+
+    Like them, it does not echo the request: the client knows which zipcode it sent.
+    """
     return HTTPException(
         status_code=422,
         detail=[
             {
                 "type": "unknown_zipcode",
                 "loc": ["body", "zipcode"],
-                "msg": f"Unknown zipcode {zipcode}: no demographic data for it.",
-                "input": zipcode,
+                "msg": "Unknown zipcode: no demographic data for it.",
             }
         ],
     )
@@ -94,7 +96,7 @@ def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
         home_features.model_dump(exclude={"zipcode"}),
     )
     if features is None:
-        raise unknown_zipcode_error(home_features.zipcode)
+        raise unknown_zipcode_error()
 
     imputation = impute_missing(features, imputer.imputer, imputer.columns)
     prediction = model.model.predict(imputation.features)
