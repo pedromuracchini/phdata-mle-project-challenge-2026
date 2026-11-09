@@ -169,3 +169,16 @@ def load_demographics(settings: Settings, features: tuple[str, ...]) -> Demograp
         house_positions=MappingProxyType({name: positions[name] for name in HOUSE_FEATURES}),
         rows=MappingProxyType(rows),
     )
+
+
+def compute_model_version(settings: Settings) -> str:
+    """Identify the artifacts that decide a prediction: ``<model>-<imputer>``.
+
+    The first part is the sha256 of ``model.pkl``, the second the sha256 of
+    ``imputer_metadata.json``, which records the sha256 of ``imputer.joblib`` (checked by
+    ``load_imputer``) and the imputer's configuration. 12 hex digits each. Computed once at
+    startup; any change to either artifact changes it.
+    """
+    model = sha256_file(settings.model_path)[:12]
+    imputer = sha256_file(settings.imputer_metadata_path)[:12]
+    return f"{model}-{imputer}"

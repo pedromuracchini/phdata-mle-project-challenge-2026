@@ -11,7 +11,7 @@ from starlette.datastructures import State
 
 from api.endpoints import router as api_router
 from api.errors import register_error_handlers
-from core.artifacts import load_demographics, load_imputer, load_model
+from core.artifacts import compute_model_version, load_demographics, load_imputer, load_model
 from core.config import Settings, get_settings
 
 
@@ -21,6 +21,7 @@ def load_artifacts(state: State, settings: Settings) -> None:
     state.model = model
     state.demographics = load_demographics(settings, model.features)
     state.imputer = load_imputer(settings)
+    state.model_version = compute_model_version(settings)
 
 
 @asynccontextmanager

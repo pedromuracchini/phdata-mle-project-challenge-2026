@@ -15,7 +15,7 @@ from services.imputation import HOUSE_FEATURES
 def assert_prediction(response: Any, imputed: list[str]) -> None:
     assert response.status_code == 200, response.text
     body = response.json()
-    assert set(body) == {"predicted_price", "imputed_fields"}
+    assert set(body) == {"predicted_price", "imputed_fields", "model_version"}
     assert body["imputed_fields"] == imputed
     assert math.isfinite(body["predicted_price"])
     assert body["predicted_price"] > 0

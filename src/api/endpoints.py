@@ -58,6 +58,8 @@ class PredictionResponse(BaseModel):
     predicted_price: float
     # Fields that were missing and filled by the imputer, in model order; empty if none.
     imputed_fields: list[str]
+    # The artifacts that produced the prediction (core.artifacts.compute_model_version).
+    model_version: str
 
 
 def unknown_zipcode_error() -> HTTPException:
@@ -106,4 +108,5 @@ def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
     return {
         "predicted_price": float(prediction[0]),
         "imputed_fields": imputation.imputed_fields,
+        "model_version": state.model_version,
     }
