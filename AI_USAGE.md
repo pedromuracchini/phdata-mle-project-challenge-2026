@@ -18,6 +18,22 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-08: attributed a benchmark regression to the threadpool instead of the Nagle floor
+
+- **Phase / task:** Phase 4, step 7 (`def` route).
+- **Asked:** measure the `def` route on its own and explain the result.
+- **Produced:** complete requests dropped to 0.78× as a `def` route. The agent attributed
+  this to thread handoff and GIL contention in one process, in the benchmark doc and in the
+  commit message. That was plausible, and it was never isolated.
+- **Caught by:** step 8a found a ~48 ms Nagle/delayed-ACK floor in every child-process server.
+  Both step 7 arms ran `--reload`, so both had it. Re-measured without it (step 8b), `def` is
+  faster than `async` with 1 worker on every profile.
+- **Outcome:** the step 7 section keeps its numbers and has a correction note pointing to
+  step 8b. The commit message cannot be changed (no amending), so this entry records it.
+  Lesson: when a result is explained by a mechanism, test the mechanism, or present it as a
+  hypothesis. A flat latency floor that doesn't move with CPU is a sign the measurement itself
+  is bounded by something else.
+
 ### 2026-11-08: assumed limiting the thread pools could not change predictions
 
 - **Phase / task:** Phase 4, step 6 (one BLAS/OpenMP thread per process).

@@ -381,6 +381,11 @@ from a separate connection (client on CPUs 12–15).
 Throughput per process is not where this service scales. Step 8 adds workers, and the
 `def`-versus-`async` cost is measured again there with several processes.
 
+> **Correction (step 8b).** Both arms above ran with `--reload`, so both had the ~48 ms Nagle
+> floor found in step 8a. Re-measured without it, `def` is faster than `async` with 1 worker on
+> every profile, complete requests included. The complete-request regression above is not a
+> threadpool cost.
+
 ## Step 8a: serve without `--reload`; worker count from `WEB_CONCURRENCY`
 
 From this step on, the server is pinned to CPUs 0–11 (6 physical cores) and the client to
@@ -484,3 +489,79 @@ from asyncio, so this is expected.
   1.57–1.82×.** CPU per request does not change: the requests were waiting, not working.
 - **The floor was in every earlier measurement of complete requests, main included** (main ran
   `--reload`, a child-process server). The worker sweep (8b) now measures workers, not Nagle.
+
+## Step 8b: how many workers
+
+Measured on `b798e7d` (with `TCP_NODELAY`). Both arms are the same image; only
+`WEB_CONCURRENCY` differs. The server is pinned to CPUs 0–11 (6 physical cores, 12 logical),
+with one BLAS/OpenMP thread per worker, so workers × threads ≤ cores up to 6 (physical) or
+12 (logical). The client is 8 connections on CPUs 12–15, as in every step.
+
+### Throughput against 1 worker
+
+json: [2](phase4-step8b-workers-2.json), [4](phase4-step8b-workers-4.json),
+[6](phase4-step8b-workers-6.json), [12](phase4-step8b-workers-12.json)
+
+| Workers | complete req/s | p50 / p99 ms | one-null-knn req/s | p50 / p99 ms | zipcode-only req/s | p50 / p99 ms | MiB (complete / KNN) |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 356–366 | 21.8 / 29–36 | 89–92 | 87 / 113–119 | 75–76 | 105 / 129–131 | 138–141 / 183–210 |
+| 2 | 660 (**1.85×**) | 11.9 / 19.6 | 151 (**1.65×**) | 62.7 / 92.5 | 126 (**1.66×**) | 90.5 / 125.9 | 284 / 366 |
+| 4 | 889 (**2.52×**) | 6.6 / 27.5 | 195 (**2.19×**) | 39.7 / 87.4 | 170 (**2.24×**) | 45.2 / 84.8 | 520 / 619 |
+| 6 | 983 (**2.70×**) | 5.9 / 35.7 | 215 (**2.36×**) | 34.1 / 76.5 | 187 (**2.51×**) | 39.8 / 79.2 | 752 / 865 |
+| 12 | 806 (2.27×) | 6.8 / 79.5 | 217 (2.40×) | 34.9 / 95.7 | 191 (2.50×) | 40.1 / 81.5 | 1,440 / 1,555 |
+
+(The 1-worker row is the range of the four control arms; ratios are against each run's own
+control.)
+
+- **6 workers, one per physical core, is the best setting here.** Throughput is 2.36–2.70× of
+  1 worker and complete p50 drops to 5.9 ms.
+- **12 workers (hyperthreads) give nothing more.** Complete throughput falls to 2.27× and its
+  p99 doubles to 79.5 ms. KNN is unchanged and memory doubles. Two workers on the two threads
+  of one core compete for the same execution units.
+- **The scaling is below linear partly because of the client.** 8 connections can keep at most
+  8 requests in flight. At 6 workers KNN p50 is 34 ms for about 30 ms of CPU, so the server is
+  close to saturated, but a deeper client would be needed to show the ceiling. The method is
+  kept fixed instead.
+- **Memory:** each worker is 175–185 MiB RSS serving complete requests and 195–262 MiB under
+  KNN load (RSS includes shared library pages). The container grows by about 122 MiB per
+  worker for complete and 130 MiB for KNN: 140 MiB with 1 worker, 752–865 MiB with 6,
+  1.4–1.6 GiB with 12. Every worker loads its own artifacts (spawned processes share nothing
+  but page-cache).
+
+### `def` against `async`, and a one-thread limiter, with workers
+
+The step 7 numbers were measured with the ~48 ms Nagle floor in both arms, so the route
+comparison is repeated. The variants are scratch images of `b798e7d` with one line changed:
+`async def predict`, or `def` with anyio's default thread limiter set to 1 in the lifespan.
+They were run with the same interleaved method through a wrapper that passes a prebuilt
+image to `ab_bench`. Control is always the committed `def` route.
+
+json: [async, 1 worker](phase4-step8b-route-async-1-workers.json),
+[async, 6 workers](phase4-step8b-route-async-6-workers.json),
+[limiter 1, 6 workers](phase4-step8b-route-limit1-6-workers.json)
+
+| Variant against `def` | complete req/s | complete p99 | one-null-knn req/s | zipcode-only req/s | CPU/req (complete, KNN) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `async`, 1 worker | 0.92× | 0.86× | **0.71×** | **0.79×** | 0.79×, 0.60× |
+| `async`, 6 workers | **1.13×** | **0.51×** | 0.89× | 0.91× | 0.67×, 0.96× |
+| `def` + limiter 1, 6 workers | 0.98× | 0.61× | 1.02× | 1.03× | 0.90×, 0.69–0.84× |
+
+- **Correction to step 7: without the Nagle floor, `def` is faster than `async` with 1 worker
+  on every profile.** That includes complete requests (`async` is 0.92×). The 0.78× measured
+  for complete requests in step 7 came from the floor interacting with the threadpool, not from
+  the threadpool cost it was attributed to.
+- **With 6 workers it is mixed.** `async` serves complete requests 13% faster with half the
+  p99, and KNN requests about 10% slower. `async` also delays `/health` behind inference
+  (step 7: p50 95 ms under KNN load), and CLAUDE.md requires `def` for CPU-bound work. **The
+  route stays `def`.**
+- **A one-thread limiter changes throughput by less than the ~5% noise floor.** It lowers CPU
+  per request (KNN −16–31%) and p99 (complete −39%), but KNN p95 rises (1.04–1.25×). It is not
+  adopted: no measurable throughput gain, and one more setting.
+
+### Default
+
+The image keeps `WEB_CONCURRENCY=1`. The right value depends on the cores a deployment gives
+the container, which the image cannot know. Set it at deploy time to the number of physical
+cores (or of CPUs in the container's quota), not hyperthreads. Here that is 6, and memory
+should be budgeted at about 140 MiB + 130 MiB × (workers − 1). `make docker-run WORKERS=N`
+does this locally.

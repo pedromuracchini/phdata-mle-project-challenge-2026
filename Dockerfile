@@ -53,8 +53,9 @@ ENV OMP_NUM_THREADS=1 \
 COPY src .
 
 # Worker processes: uvicorn reads WEB_CONCURRENCY when --workers is not given, so set it at
-# deploy time to the cores the container gets (threads per worker are 1, above). Every worker
-# loads its own copy of the artifacts. No --reload here: it is a development tool (it polled
+# deploy time to the physical cores the container gets (threads per worker are 1, above):
+# hyperthreads added no throughput (docs/benchmarks/phase-4-performance.md, step 8b). Every
+# worker loads its own copy of the artifacts: budget ~140 MiB + ~130 MiB per extra worker. No --reload here: it is a development tool (it polled
 # every *.py under /app, .venv included, 4 times a second); `make docker-dev` runs with it.
 # --http: uvicorn's h11 protocol plus TCP_NODELAY. Serving from worker processes, uvicorn
 # leaves Nagle on and every response waited ~44 ms for the client's ACK (core/server.py).

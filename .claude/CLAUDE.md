@@ -180,7 +180,8 @@ command, fix the cause or ask the human — never look for a way around it.
   The OpenMP count is part of the results: scikit-learn's KNN breaks exact distance ties by
   thread chunking, so changing it changes predictions (baseline row 99). Ask before changing it.
 - Worker processes come from `WEB_CONCURRENCY` (uvicorn's own variable; image default in the
-  `Dockerfile`). Keep workers x threads <= the cores the container gets. Never put `--reload` or
+  `Dockerfile`). Keep workers x threads <= the physical cores the container gets (hyperthreads
+  added nothing, step 8b). Never put `--reload` or
   `--workers` in the production `CMD` (`tests/unit/test_server_command.py`).
 - Serve with `--http core.server:NoDelayH11Protocol` (production `CMD` and `make docker-dev`):
   with workers or reload, uvicorn leaves Nagle on and every response waits ~44 ms for an ACK.
