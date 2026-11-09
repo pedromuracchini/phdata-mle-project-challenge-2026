@@ -2,7 +2,7 @@
 
 Each Phase 4 commit removes one piece of repeated or serial work. This file records how each
 one was measured and what it changed. The final before/after summary is
-[`after.md`](after.md); the design decisions are in ADR 004.
+[`after.md`](after.md); the design decisions are in [ADR 004](../adr/004-serving-performance.md).
 
 ## Method (used for every number in this file)
 
