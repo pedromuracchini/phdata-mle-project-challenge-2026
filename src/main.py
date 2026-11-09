@@ -11,6 +11,7 @@ from starlette.datastructures import State
 
 from api.endpoints import router as api_router
 from api.errors import register_error_handlers
+from api.middleware import RequestIDMiddleware
 from core.artifacts import compute_model_version, load_demographics, load_imputer, load_model
 from core.config import Settings, get_settings
 
@@ -41,6 +42,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Added last, so it is the outermost middleware: every response carries the ID.
+app.add_middleware(RequestIDMiddleware)
 
 register_error_handlers(app)
 app.include_router(api_router)
