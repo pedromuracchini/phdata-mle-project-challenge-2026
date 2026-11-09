@@ -565,3 +565,46 @@ the container, which the image cannot know. Set it at deploy time to the number 
 cores (or of CPUs in the container's quota), not hyperthreads. Here that is 6, and memory
 should be budgeted at about 140 MiB + 130 MiB × (workers − 1). `make docker-run WORKERS=N`
 does this locally.
+
+## Step 9: KNN path (dropped)
+
+Profile of a KNN request with one thread per pool: about 20 ms in the handler under cProfile.
+`KNNImputer.transform` is 12 ms of it (`nan_euclidean_distances` 8 ms, input validation about
+5 ms), `fill_sqft_identity` 3.9 ms, and `Pipeline.predict` 3 ms. The proposal was a
+re-implementation of `transform` reproducing scikit-learn's numpy operations bit for bit. The
+human rejected it: the request path keeps scikit-learn's `KNNImputer` (AI_USAGE.md).
+
+## Step 11: leftover pandas overhead (the sqft fill)
+
+The profile above showed 3.9 ms of a KNN request in `fill_sqft_identity`, pure pandas: three
+boolean-mask `.loc` writes and the series arithmetic, run even when no row has exactly one sqft
+field missing. With nothing to derive, the result is the float64 copy it starts from, so it
+now returns that copy early. When a field can be derived, the code is unchanged. A test checks
+that the early return gives a float64 copy, never the caller's frame, with unchanged values.
+`make check-equivalence` matches the reference on all 128 patterns. Under cProfile the function
+drops from 3.9 to about 1 ms, and the handler from 19.7 to 17.0 ms (one null) and from 21.9 to
+18.9 ms (zipcode only).
+
+Control: `667e170`. Candidate: the working tree. The same worker count in both arms.
+
+| Workers | Profile | req/s | p50 | p99 | CPU ms/req |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | complete | 0.994× | 1.00× | 1.00× | 1.00× |
+| 1 | one-null-knn | **1.22×** (91.3 → 111.1) | **0.83×** | **0.81×** | **0.85×** (25.3 → 21.3) |
+| 1 | zipcode-only | **1.18×** (75.0 → 88.5) | **0.85×** | **0.85×** | **0.86×** (27.4 → 23.4) |
+| 6 | complete | 0.976× | 0.93× | 2.02× | 1.18× |
+| 6 | one-null-knn | 1.06× | 0.96× | 0.80× | 0.98× |
+| 6 | zipcode-only | 1.05× | 1.02× | 1.07× | 0.97× |
+
+json: [1 worker](phase4-step11-sqft-early-return-1-workers.json),
+[6 workers](phase4-step11-sqft-early-return-6-workers.json)
+
+- **With 1 worker, KNN requests are 1.18–1.22× faster, with 14–15% less CPU per request.**
+- **With 6 workers the change is within noise (≤ 6%).** That load is bounded by 8 client
+  connections, not by the CPU of each request.
+- **Complete requests don't run this code** (no field is missing). Their 6-worker p99 (2.02×)
+  is run-to-run noise: complete-request p99 at 6 workers has ranged from 24 to 47 ms across
+  identical images in step 8b.
+- Memory with 1 worker under KNN load: 196 → 250 MiB. Not isolated; a likely cause is more
+  requests overlapping in the threadpool, each holding its own distance buffers. With 6
+  workers it is unchanged.

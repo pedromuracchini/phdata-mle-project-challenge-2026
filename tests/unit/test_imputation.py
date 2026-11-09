@@ -286,3 +286,22 @@ def test_fill_sqft_identity_on_several_rows() -> None:
         }
     )
     pd.testing.assert_frame_equal(filled, expected)
+
+
+def test_fill_sqft_identity_without_a_single_missing_sqft_returns_a_float64_copy() -> None:
+    """The early return (nothing to derive) gives what the full path gave: a float64 copy."""
+    nan = np.nan
+    frame = pd.DataFrame(
+        {
+            "bedrooms": pd.array([None, 3], dtype="Int64"),
+            "sqft_living": [nan, 2000.0],
+            "sqft_above": [nan, 1500.0],
+            "sqft_basement": [nan, 500.0],
+        }
+    )
+
+    filled = fill_sqft_identity(frame)
+
+    assert filled is not frame
+    assert (filled.dtypes == "float64").all()
+    pd.testing.assert_frame_equal(filled, frame.astype("float64"))

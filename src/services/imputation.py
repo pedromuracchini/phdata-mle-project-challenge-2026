@@ -57,8 +57,12 @@ def fill_sqft_identity(features: pd.DataFrame) -> pd.DataFrame:
     stays missing for KNN. Returns a float64 copy.
     """
     filled = features.astype("float64")
-    living, above, basement = (filled[column] for column in SQFT_IDENTITY)
     one_missing = filled[list(SQFT_IDENTITY)].isna().sum(axis=1) == 1
+    if not one_missing.any():
+        # Nothing to derive (the usual case): skip the masked .loc writes, which cost more than
+        # the rest of this function (docs/benchmarks/phase-4-performance.md, step 11).
+        return filled
+    living, above, basement = (filled[column] for column in SQFT_IDENTITY)
     derived = {
         SQFT_LIVING: above + basement,
         SQFT_ABOVE: living - basement,

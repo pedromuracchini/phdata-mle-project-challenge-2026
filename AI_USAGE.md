@@ -18,6 +18,23 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-08: proposed re-implementing the KNN imputer's transform (rejected)
+
+- **Phase / task:** Phase 4, step 9 (KNN path).
+- **Asked:** a faster KNN path that reproduces the persisted `KNNImputer` exactly, with the
+  approach brought to the human before implementing it.
+- **Produced:** a proposal for an `ExactKNNImputer`. It would replay scikit-learn 1.7.2's
+  numpy operations in the same order, precompute the donor-side arrays at startup, skip two
+  operations that are exact identities when no donor has a NaN, and run one `argpartition`
+  for all columns. That is about 80 lines coupled to scikit-learn internals, for an estimated
+  (unmeasured) ~2× on KNN CPU per request.
+- **Caught by:** the human, in review of the approach: no need for a new KNN, use
+  scikit-learn's.
+- **Outcome:** step 9 was dropped; the request path keeps `KNNImputer.transform`. The leftover
+  overhead the profile showed outside scikit-learn (the pandas sqft fill) became step 11.
+  Lesson: weigh an exact-reproduction rewrite against what it ties the code to, and offer the
+  "keep the library" option alongside it, not only the rewrite.
+
 ### 2026-11-08: attributed a benchmark regression to the threadpool instead of the Nagle floor
 
 - **Phase / task:** Phase 4, step 7 (`def` route).
