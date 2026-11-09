@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from core.artifacts import ImputerArtifact, ModelArtifact
@@ -79,10 +80,23 @@ def unknown_zipcode_error() -> HTTPException:
     )
 
 
+# What the lifespan puts on app.state; /ready checks every one of them.
+READY_STATE = ("model", "demographics", "imputer", "model_version")
+
+
 @router.get("/health")
 async def health_check() -> dict[str, str]:
-    """Health check endpoint for container orchestration."""
+    """Liveness: the process serves HTTP. Checks no dependency (the image's HEALTHCHECK)."""
     return {"status": "healthy"}
+
+
+@router.get("/ready", response_model=None)
+async def readiness(request: Request) -> dict[str, str] | JSONResponse:
+    """Readiness: the artifacts are loaded and model_version is known; otherwise 503."""
+    state = request.app.state
+    if not all(hasattr(state, name) for name in READY_STATE):
+        return JSONResponse(status_code=503, content={"status": "not ready"})
+    return {"status": "ready", "model_version": state.model_version}
 
 
 # `def`, not `async def`: imputation and inference are CPU-bound, so FastAPI runs the route in
