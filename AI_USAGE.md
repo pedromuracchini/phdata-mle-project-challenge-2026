@@ -18,6 +18,103 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-08: chose py-spy to diagnose the native thread pools
+
+- **Phase / task:** Phase 4, step 3 (profile main's KNN requests).
+- **Asked:** profile before optimizing; py-spy was allowed as a throwaway sidecar.
+- **Produced:** the agent used py-spy to look into the OpenBLAS/OpenMP contention. py-spy
+  samples Python stacks, so it cannot see inside the native pools. Its stop-the-world sampling
+  also distorts threads that spin-wait. The sidecar first needed two fixes (a missing `pgrep`,
+  then a grep matching its own shell).
+- **Caught by:** the agent, when the py-spy output did not account for the measured CPU time.
+- **Outcome:** the py-spy result was not used. The diagnosis used per-thread `top -H` and
+  cProfile runs with each pool limited in turn (committed in step 3). Lesson: pick the profiler
+  for the layer in question; for native thread pools, use per-thread OS views or toggle the
+  pools.
+
+### 2026-11-08: ran two long equivalence checks in parallel, which saved no time
+
+- **Phase / task:** Phase 4, building the bit-exact equivalence gate.
+- **Asked:** how long the equivalence checks would take.
+- **Produced:** the agent ran two ~32-minute checks (main's reference and a candidate) at the
+  same time to save wall-clock time. Each already used every core through the unlimited thread
+  pools, so together they took as long as running them one after the other (load average 37).
+- **Caught by:** the agent, from the timings; reported to the human as such.
+- **Outcome:** later long runs went one after the other, and nothing else ran during
+  benchmarks. Lesson: two CPU-bound jobs that each fill the machine gain nothing from running
+  in parallel.
+
+### 2026-11-08: profiles meant to run with `OMP_NUM_THREADS=1` ran without the limit (zsh)
+
+- **Phase / task:** Phase 4, step 3 (profile main with each thread pool limited).
+- **Asked:** profile main's KNN request with the thread pools limited, to find the contention.
+- **Produced:** the agent passed the limits through an unquoted shell variable
+  (`docker run $ENV_ARGS ...`). zsh does not word-split unquoted variables, so the variable
+  went through as one malformed argument and the first `-omp1` profiles ran with no limit at
+  all. Nothing failed.
+- **Caught by:** the agent, because those profiles' timings matched the unlimited run.
+- **Outcome:** the profiles were discarded and rerun with explicit `-e` arguments.
+  `scripts/profile_predict.py` now prints `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and
+  `MKL_NUM_THREADS` in every report header, so a run shows the limits it actually had.
+  Lesson: have experiments record the configuration they ran with, instead of trusting the
+  command line.
+
+### 2026-11-08: proposed re-implementing the KNN imputer's transform (rejected)
+
+- **Phase / task:** Phase 4, step 9 (KNN path).
+- **Asked:** a faster KNN path that reproduces the persisted `KNNImputer` exactly, with the
+  approach brought to the human before implementing it.
+- **Produced:** a proposal for an `ExactKNNImputer`. It would replay scikit-learn 1.7.2's
+  numpy operations in the same order, precompute the donor-side arrays at startup, skip two
+  operations that are exact identities when no donor has a NaN, and run one `argpartition`
+  for all columns. That is about 80 lines coupled to scikit-learn internals, for an estimated
+  (unmeasured) ~2× on KNN CPU per request.
+- **Caught by:** the human, in review of the approach: no need for a new KNN, use
+  scikit-learn's.
+- **Outcome:** step 9 was dropped; the request path keeps `KNNImputer.transform`. The leftover
+  overhead the profile showed outside scikit-learn (the pandas sqft fill) became step 11.
+  Lesson: weigh an exact-reproduction rewrite against what it ties the code to, and offer the
+  "keep the library" option alongside it, not only the rewrite.
+
+### 2026-11-08: attributed a benchmark regression to the threadpool instead of the Nagle floor
+
+- **Phase / task:** Phase 4, step 7 (`def` route).
+- **Asked:** measure the `def` route on its own and explain the result.
+- **Produced:** complete requests dropped to 0.78× as a `def` route. The agent attributed
+  this to thread handoff and GIL contention in one process, in the benchmark doc and in the
+  commit message. That was plausible, and it was never isolated.
+- **Caught by:** step 8a found a ~48 ms Nagle/delayed-ACK floor in every child-process server.
+  Both step 7 arms ran `--reload`, so both had it. Re-measured without it (step 8b), `def` is
+  faster than `async` with 1 worker on every profile.
+- **Outcome:** the step 7 section keeps its numbers and has a correction note pointing to
+  step 8b. The commit message cannot be changed (no amending), so this entry records it.
+  Lesson: when a result is explained by a mechanism, test the mechanism, or present it as a
+  hypothesis. A flat latency floor that doesn't move with CPU is a sign the measurement itself
+  is bounded by something else.
+
+### 2026-11-08: assumed limiting the thread pools could not change predictions
+
+- **Phase / task:** Phase 4, step 6 (one BLAS/OpenMP thread per process).
+- **Asked:** remove the thread-pool contention found in step 3, changing no prediction.
+- **Produced:** the agent planned the thread limits as a pure performance change and expected
+  the gates to pass unchanged. It also first read main's default as 16 OpenMP threads (the
+  logical CPU count). With `OMP_NUM_THREADS` unset, scikit-learn 1.7.2 uses the *physical* core
+  count, which is 8 here.
+- **Caught by:** the gates. `test_complete_payload_matches_baseline[row-99]` failed
+  (573,300 vs 564,800) and `make check-equivalence` reported 93 of 128 patterns different. Value
+  dumps under five thread configurations showed:
+  - imputed values are bit-identical in every configuration;
+  - the OpenBLAS count changes nothing;
+  - only the OpenMP count of the model's KNN search changes results: 93 of 12,800 calls, all
+    exact ties at the 5th neighbour (checked one by one);
+  - `OMP_NUM_THREADS=8` reproduces main's reference bit-for-bit.
+- **Outcome:** the human chose one thread for both pools and approved amending baseline row 99
+  (recorded in the fixture's `amendments`) and regenerating the imputation reference from main
+  with one thread. The old value depended on the recording host's core count. Lessons: thread
+  counts can be part of a numeric result, so run the gates on any "pure performance"
+  configuration change before measuring it; and check a library's default rather than assume
+  it.
+
 ### 2026-11-08: route rewrite silently dropped v0's per-request `print`
 
 - **Phase / task:** Phase 3, making every field except `zipcode` nullable (commit 6, the

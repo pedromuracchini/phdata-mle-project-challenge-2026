@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import json
-import pickle
 from typing import Annotated, Any
 
-import pandas as pd
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
-from core.artifacts import ImputerArtifact
-from core.config import get_settings
+from core.artifacts import ImputerArtifact, ModelArtifact
 from services.imputation import impute_missing
+from services.prediction import build_features
 
 router = APIRouter()
 
@@ -58,50 +55,31 @@ def unknown_zipcode_error(zipcode: str) -> HTTPException:
     )
 
 
-def imputer_from(request: Request) -> ImputerArtifact:
-    artifact: ImputerArtifact = request.app.state.imputer
-    return artifact
-
-
 @router.get("/health")
 async def health_check() -> dict[str, str]:
     """Health check endpoint for container orchestration."""
     return {"status": "healthy"}
 
 
-# Still `async def` with per-request file reads, as in v0: Phase 4 moves the model and
-# demographics loading to the lifespan and makes this a `def` route, measuring each change.
+# `def`, not `async def`: imputation and inference are CPU-bound, so FastAPI runs the route in
+# its threadpool instead of on the event loop, which would otherwise serve one request at a
+# time. The artifacts on app.state are only read, and each request gets its own feature row.
 @router.post("/predict", response_model=PredictionResponse)
-async def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
-    settings = get_settings()
+def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
+    state = request.app.state
+    model: ModelArtifact = state.model
+    imputer: ImputerArtifact = state.imputer
 
-    with open(settings.model_path, "rb") as model_file:  # noqa: ASYNC230 (Phase 4)
-        model = pickle.load(model_file)
-
-    with open(settings.model_features_path) as features_file:  # noqa: ASYNC230 (Phase 4)
-        model_features = json.load(features_file)
-
-    input_data = pd.DataFrame([home_features.model_dump()])
-
-    demographics = pd.read_csv(settings.demographics_path, dtype={"zipcode": str})
-    demographic_info = (
-        demographics[demographics["zipcode"] == home_features.zipcode]
-        .drop(columns="zipcode")
-        .reset_index(drop=True)
+    features = build_features(
+        state.demographics,
+        home_features.zipcode,
+        home_features.model_dump(exclude={"zipcode"}),
     )
-    if demographic_info.empty:
+    if features is None:
         raise unknown_zipcode_error(home_features.zipcode)
 
-    input_data = pd.concat([input_data, demographic_info], axis=1)
-    # v0 behaviour, kept on purpose despite CLAUDE.md's "no print": it is 71 % of handler time
-    # (docs/benchmarks/baseline.md), and Phase 4 removes it as its own measured optimization.
-    print(input_data)
-    input_data = input_data[model_features]
-
-    artifact = imputer_from(request)
-    imputation = impute_missing(input_data, artifact.imputer, artifact.columns)
-
-    prediction = model.predict(imputation.features)
+    imputation = impute_missing(features, imputer.imputer, imputer.columns)
+    prediction = model.model.predict(imputation.features)
 
     return {
         "predicted_price": float(prediction[0]),

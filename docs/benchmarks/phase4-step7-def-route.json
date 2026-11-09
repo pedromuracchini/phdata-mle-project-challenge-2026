@@ -1,0 +1,1046 @@
+{
+  "generated_at": "2026-11-08T23:01:55Z",
+  "label": "step 7: def route (threadpool)",
+  "machine": {
+    "cpu_model": "AMD Ryzen 7 5700U with Radeon Graphics",
+    "logical_cpus": 16,
+    "physical_cores": 8,
+    "governor": "performance",
+    "mem_total": "7464868 kB",
+    "mem_available_at_start": "3644284 kB",
+    "kernel": "6.12.115+deb13.1-amd64",
+    "docker": "29.9.3",
+    "client_python": "3.12.16"
+  },
+  "method": {
+    "rounds": 3,
+    "order": "A,B in odd rounds, B,A in even rounds; fresh container per run",
+    "requests": 500,
+    "concurrency": 8,
+    "warmup": 20,
+    "profiles": [
+      "complete",
+      "one-null-knn",
+      "zipcode-only"
+    ],
+    "server_cpus": "0-15",
+    "server_pinned": false,
+    "client_cpus": "12-15",
+    "payloads": "future_unseen_examples.csv, cycled"
+  },
+  "arms": {
+    "control": {
+      "name": "control",
+      "ref": "d7cd2c1",
+      "docker_args": [],
+      "image": "mle-ab:d7cd2c19994c",
+      "image_id": "sha256:5720ef76a676655579cfbe8c14ea94ea0777b8223650f024fdda0c60c846cc95",
+      "git_sha": "d7cd2c19994c7a1de66ec421041daa076462f841",
+      "worktree_diff_sha256": null
+    },
+    "candidate": {
+      "name": "candidate",
+      "ref": "worktree",
+      "docker_args": [],
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "image_id": "sha256:a7db334b3330ea5ae13a0fa7bc6af7980e0adad735d1357acbd00f10b7508415",
+      "git_sha": "d7cd2c19994c7a1de66ec421041daa076462f841",
+      "worktree_diff_sha256": "a5b0d6260e60adb99616b1c91766fbddbc7f284db15eea7859cc74b52930a952"
+    }
+  },
+  "runs": [
+    {
+      "round": 1,
+      "profile": "complete",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 2.984,
+      "throughput_rps": 167.57,
+      "latency_ms": {
+        "min": 4.615,
+        "p50": 47.959,
+        "p95": 51.965,
+        "p99": 58.257,
+        "max": 62.251,
+        "mean": 47.414
+      },
+      "server_cpu": {
+        "cpu_ms_total": 3194.2,
+        "cpu_ms_per_request": 6.388,
+        "cores_busy": 1.07
+      },
+      "client_cpu": {
+        "cores_busy": 0.074
+      },
+      "memory": {
+        "current_mib": 160.8,
+        "peak_mib": 162.1,
+        "processes": [
+          {
+            "pid": 100037,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34988
+          },
+          {
+            "pid": 100105,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12484
+          },
+          {
+            "pid": 100106,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 183692
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:01:55Z"
+    },
+    {
+      "round": 1,
+      "profile": "complete",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 3.86,
+      "throughput_rps": 129.53,
+      "latency_ms": {
+        "min": 24.104,
+        "p50": 63.308,
+        "p95": 68.21,
+        "p99": 110.996,
+        "max": 115.453,
+        "mean": 61.15
+      },
+      "server_cpu": {
+        "cpu_ms_total": 4215.8,
+        "cpu_ms_per_request": 8.432,
+        "cores_busy": 1.092
+      },
+      "client_cpu": {
+        "cores_busy": 0.051
+      },
+      "memory": {
+        "current_mib": 179.3,
+        "peak_mib": 180.4,
+        "processes": [
+          {
+            "pid": 100219,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34788
+          },
+          {
+            "pid": 100287,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12692
+          },
+          {
+            "pid": 100288,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 201140
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:02:01Z"
+    },
+    {
+      "round": 1,
+      "profile": "one-null-knn",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.928,
+      "throughput_rps": 63.07,
+      "latency_ms": {
+        "min": 17.057,
+        "p50": 127.757,
+        "p95": 128.406,
+        "p99": 148.666,
+        "max": 169.026,
+        "mean": 125.964
+      },
+      "server_cpu": {
+        "cpu_ms_total": 12157.5,
+        "cpu_ms_per_request": 24.315,
+        "cores_busy": 1.533
+      },
+      "client_cpu": {
+        "cores_busy": 0.033
+      },
+      "memory": {
+        "current_mib": 161.3,
+        "peak_mib": 175.6,
+        "processes": [
+          {
+            "pid": 100418,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34936
+          },
+          {
+            "pid": 100484,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12584
+          },
+          {
+            "pid": 100485,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 185064
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:02:09Z"
+    },
+    {
+      "round": 1,
+      "profile": "one-null-knn",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.025,
+      "throughput_rps": 71.18,
+      "latency_ms": {
+        "min": 55.77,
+        "p50": 115.215,
+        "p95": 132.698,
+        "p99": 160.21,
+        "max": 176.042,
+        "mean": 112.212
+      },
+      "server_cpu": {
+        "cpu_ms_total": 18996.4,
+        "cpu_ms_per_request": 37.993,
+        "cores_busy": 2.704
+      },
+      "client_cpu": {
+        "cores_busy": 0.032
+      },
+      "memory": {
+        "current_mib": 214.6,
+        "peak_mib": 283.0,
+        "processes": [
+          {
+            "pid": 100608,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34816
+          },
+          {
+            "pid": 100676,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12596
+          },
+          {
+            "pid": 100677,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 238184
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:02:20Z"
+    },
+    {
+      "round": 1,
+      "profile": "zipcode-only",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 8.753,
+      "throughput_rps": 57.13,
+      "latency_ms": {
+        "min": 19.001,
+        "p50": 139.857,
+        "p95": 144.155,
+        "p99": 171.818,
+        "max": 182.081,
+        "mean": 139.028
+      },
+      "server_cpu": {
+        "cpu_ms_total": 13453.2,
+        "cpu_ms_per_request": 26.906,
+        "cores_busy": 1.537
+      },
+      "client_cpu": {
+        "cores_busy": 0.029
+      },
+      "memory": {
+        "current_mib": 161.5,
+        "peak_mib": 175.8,
+        "processes": [
+          {
+            "pid": 100804,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34712
+          },
+          {
+            "pid": 100872,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12412
+          },
+          {
+            "pid": 100873,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 185620
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:02:31Z"
+    },
+    {
+      "round": 1,
+      "profile": "zipcode-only",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.773,
+      "throughput_rps": 64.33,
+      "latency_ms": {
+        "min": 56.06,
+        "p50": 124.37,
+        "p95": 148.119,
+        "p99": 159.871,
+        "max": 172.276,
+        "mean": 124.13
+      },
+      "server_cpu": {
+        "cpu_ms_total": 20383.0,
+        "cpu_ms_per_request": 40.766,
+        "cores_busy": 2.622
+      },
+      "client_cpu": {
+        "cores_busy": 0.027
+      },
+      "memory": {
+        "current_mib": 215.8,
+        "peak_mib": 283.0,
+        "processes": [
+          {
+            "pid": 101000,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34720
+          },
+          {
+            "pid": 101067,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12500
+          },
+          {
+            "pid": 101068,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 239832
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:02:43Z"
+    },
+    {
+      "round": 2,
+      "profile": "complete",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 3.788,
+      "throughput_rps": 132.0,
+      "latency_ms": {
+        "min": 23.267,
+        "p50": 60.543,
+        "p95": 68.344,
+        "p99": 107.529,
+        "max": 111.7,
+        "mean": 60.413
+      },
+      "server_cpu": {
+        "cpu_ms_total": 4247.1,
+        "cpu_ms_per_request": 8.494,
+        "cores_busy": 1.121
+      },
+      "client_cpu": {
+        "cores_busy": 0.051
+      },
+      "memory": {
+        "current_mib": 176.7,
+        "peak_mib": 177.7,
+        "processes": [
+          {
+            "pid": 101189,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34716
+          },
+          {
+            "pid": 101257,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12480
+          },
+          {
+            "pid": 101258,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 199008
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:02:54Z"
+    },
+    {
+      "round": 2,
+      "profile": "complete",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 2.996,
+      "throughput_rps": 166.89,
+      "latency_ms": {
+        "min": 4.01,
+        "p50": 47.999,
+        "p95": 52.001,
+        "p99": 59.829,
+        "max": 64.623,
+        "mean": 47.684
+      },
+      "server_cpu": {
+        "cpu_ms_total": 3188.7,
+        "cpu_ms_per_request": 6.377,
+        "cores_busy": 1.064
+      },
+      "client_cpu": {
+        "cores_busy": 0.076
+      },
+      "memory": {
+        "current_mib": 160.8,
+        "peak_mib": 162.3,
+        "processes": [
+          {
+            "pid": 101386,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34920
+          },
+          {
+            "pid": 101452,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12596
+          },
+          {
+            "pid": 101453,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 184480
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:01Z"
+    },
+    {
+      "round": 2,
+      "profile": "one-null-knn",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 6.9,
+      "throughput_rps": 72.46,
+      "latency_ms": {
+        "min": 55.689,
+        "p50": 112.203,
+        "p95": 128.007,
+        "p99": 155.477,
+        "max": 159.933,
+        "mean": 109.906
+      },
+      "server_cpu": {
+        "cpu_ms_total": 17762.6,
+        "cpu_ms_per_request": 35.525,
+        "cores_busy": 2.574
+      },
+      "client_cpu": {
+        "cores_busy": 0.032
+      },
+      "memory": {
+        "current_mib": 243.1,
+        "peak_mib": 284.6,
+        "processes": [
+          {
+            "pid": 101570,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34932
+          },
+          {
+            "pid": 101636,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12548
+          },
+          {
+            "pid": 101637,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 268016
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:08Z"
+    },
+    {
+      "round": 2,
+      "profile": "one-null-knn",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.957,
+      "throughput_rps": 62.84,
+      "latency_ms": {
+        "min": 17.243,
+        "p50": 127.755,
+        "p95": 128.461,
+        "p99": 155.629,
+        "max": 167.203,
+        "mean": 126.428
+      },
+      "server_cpu": {
+        "cpu_ms_total": 12193.0,
+        "cpu_ms_per_request": 24.386,
+        "cores_busy": 1.532
+      },
+      "client_cpu": {
+        "cores_busy": 0.034
+      },
+      "memory": {
+        "current_mib": 161.5,
+        "peak_mib": 175.8,
+        "processes": [
+          {
+            "pid": 101772,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34888
+          },
+          {
+            "pid": 101839,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12496
+          },
+          {
+            "pid": 101840,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 184828
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:18Z"
+    },
+    {
+      "round": 2,
+      "profile": "zipcode-only",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.428,
+      "throughput_rps": 67.31,
+      "latency_ms": {
+        "min": 55.671,
+        "p50": 120.176,
+        "p95": 144.019,
+        "p99": 163.923,
+        "max": 171.345,
+        "mean": 118.14
+      },
+      "server_cpu": {
+        "cpu_ms_total": 19020.6,
+        "cpu_ms_per_request": 38.041,
+        "cores_busy": 2.561
+      },
+      "client_cpu": {
+        "cores_busy": 0.031
+      },
+      "memory": {
+        "current_mib": 241.7,
+        "peak_mib": 282.9,
+        "processes": [
+          {
+            "pid": 101953,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34888
+          },
+          {
+            "pid": 102020,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12688
+          },
+          {
+            "pid": 102021,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 266208
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:29Z"
+    },
+    {
+      "round": 2,
+      "profile": "zipcode-only",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 8.408,
+      "throughput_rps": 59.46,
+      "latency_ms": {
+        "min": 18.377,
+        "p50": 132.376,
+        "p95": 136.46,
+        "p99": 167.99,
+        "max": 183.688,
+        "mean": 133.571
+      },
+      "server_cpu": {
+        "cpu_ms_total": 12966.3,
+        "cpu_ms_per_request": 25.933,
+        "cores_busy": 1.542
+      },
+      "client_cpu": {
+        "cores_busy": 0.022
+      },
+      "memory": {
+        "current_mib": 161.4,
+        "peak_mib": 175.9,
+        "processes": [
+          {
+            "pid": 102148,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34924
+          },
+          {
+            "pid": 102214,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12512
+          },
+          {
+            "pid": 102215,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 185196
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:40Z"
+    },
+    {
+      "round": 3,
+      "profile": "complete",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 2.992,
+      "throughput_rps": 167.1,
+      "latency_ms": {
+        "min": 5.85,
+        "p50": 47.982,
+        "p95": 51.934,
+        "p99": 57.28,
+        "max": 64.448,
+        "mean": 47.526
+      },
+      "server_cpu": {
+        "cpu_ms_total": 3192.0,
+        "cpu_ms_per_request": 6.384,
+        "cores_busy": 1.067
+      },
+      "client_cpu": {
+        "cores_busy": 0.073
+      },
+      "memory": {
+        "current_mib": 161.0,
+        "peak_mib": 162.1,
+        "processes": [
+          {
+            "pid": 102340,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34852
+          },
+          {
+            "pid": 102406,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12516
+          },
+          {
+            "pid": 102407,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 183948
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:52Z"
+    },
+    {
+      "round": 3,
+      "profile": "complete",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 3.896,
+      "throughput_rps": 128.32,
+      "latency_ms": {
+        "min": 26.24,
+        "p50": 63.658,
+        "p95": 68.712,
+        "p99": 115.939,
+        "max": 119.2,
+        "mean": 61.74
+      },
+      "server_cpu": {
+        "cpu_ms_total": 4359.1,
+        "cpu_ms_per_request": 8.718,
+        "cores_busy": 1.119
+      },
+      "client_cpu": {
+        "cores_busy": 0.051
+      },
+      "memory": {
+        "current_mib": 174.5,
+        "peak_mib": 176.0,
+        "processes": [
+          {
+            "pid": 102520,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34796
+          },
+          {
+            "pid": 102587,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12504
+          },
+          {
+            "pid": 102588,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 196364
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:03:59Z"
+    },
+    {
+      "round": 3,
+      "profile": "one-null-knn",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.94,
+      "throughput_rps": 62.97,
+      "latency_ms": {
+        "min": 17.56,
+        "p50": 127.767,
+        "p95": 128.34,
+        "p99": 163.073,
+        "max": 165.918,
+        "mean": 126.162
+      },
+      "server_cpu": {
+        "cpu_ms_total": 12167.7,
+        "cpu_ms_per_request": 24.335,
+        "cores_busy": 1.532
+      },
+      "client_cpu": {
+        "cores_busy": 0.034
+      },
+      "memory": {
+        "current_mib": 161.2,
+        "peak_mib": 175.9,
+        "processes": [
+          {
+            "pid": 102714,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34676
+          },
+          {
+            "pid": 102780,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12416
+          },
+          {
+            "pid": 102781,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 185164
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:04:06Z"
+    },
+    {
+      "round": 3,
+      "profile": "one-null-knn",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 6.873,
+      "throughput_rps": 72.75,
+      "latency_ms": {
+        "min": 55.462,
+        "p50": 112.042,
+        "p95": 131.476,
+        "p99": 148.391,
+        "max": 164.725,
+        "mean": 109.602
+      },
+      "server_cpu": {
+        "cpu_ms_total": 18239.8,
+        "cpu_ms_per_request": 36.48,
+        "cores_busy": 2.654
+      },
+      "client_cpu": {
+        "cores_busy": 0.033
+      },
+      "memory": {
+        "current_mib": 228.2,
+        "peak_mib": 283.0,
+        "processes": [
+          {
+            "pid": 102901,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34888
+          },
+          {
+            "pid": 102970,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12428
+          },
+          {
+            "pid": 102971,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 252712
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:04:17Z"
+    },
+    {
+      "round": 3,
+      "profile": "zipcode-only",
+      "arm": "control",
+      "image": "mle-ab:d7cd2c19994c",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 8.729,
+      "throughput_rps": 57.28,
+      "latency_ms": {
+        "min": 19.539,
+        "p50": 139.861,
+        "p95": 143.454,
+        "p99": 172.021,
+        "max": 189.4,
+        "mean": 138.652
+      },
+      "server_cpu": {
+        "cpu_ms_total": 13404.6,
+        "cpu_ms_per_request": 26.809,
+        "cores_busy": 1.536
+      },
+      "client_cpu": {
+        "cores_busy": 0.03
+      },
+      "memory": {
+        "current_mib": 161.3,
+        "peak_mib": 175.7,
+        "processes": [
+          {
+            "pid": 103093,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34928
+          },
+          {
+            "pid": 103161,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12504
+          },
+          {
+            "pid": 103162,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 185104
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:04:28Z"
+    },
+    {
+      "round": 3,
+      "profile": "zipcode-only",
+      "arm": "candidate",
+      "image": "mle-ab:worktree-d7cd2c19994c-a5b0d626",
+      "requests": 500,
+      "concurrency": 8,
+      "errors": 0,
+      "wall_time_s": 7.325,
+      "throughput_rps": 68.26,
+      "latency_ms": {
+        "min": 55.594,
+        "p50": 120.277,
+        "p95": 140.001,
+        "p99": 167.255,
+        "max": 175.57,
+        "mean": 116.919
+      },
+      "server_cpu": {
+        "cpu_ms_total": 18370.9,
+        "cpu_ms_per_request": 36.742,
+        "cores_busy": 2.508
+      },
+      "client_cpu": {
+        "cores_busy": 0.031
+      },
+      "memory": {
+        "current_mib": 255.5,
+        "peak_mib": 282.8,
+        "processes": [
+          {
+            "pid": 103280,
+            "cmdline": "/app/.venv/bin/python /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+            "rss_kib": 34924
+          },
+          {
+            "pid": 103346,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.resource_tracker import main;main(4)",
+            "rss_kib": 12708
+          },
+          {
+            "pid": 103347,
+            "cmdline": "/app/.venv/bin/python -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=5, pipe_handle=7) --multiprocessing-fork",
+            "rss_kib": 280532
+          }
+        ]
+      },
+      "started_at": "2026-11-08T23:04:40Z"
+    }
+  ],
+  "summary": {
+    "complete": {
+      "control": {
+        "throughput_rps": 167.1,
+        "p50_ms": 47.982,
+        "p95_ms": 51.965,
+        "p99_ms": 58.257,
+        "server_cpu_ms_per_request": 6.384,
+        "server_cores_busy": 1.067,
+        "client_cores_busy": 0.074,
+        "memory_mib": 160.8,
+        "runs": 3,
+        "errors": 0
+      },
+      "candidate": {
+        "throughput_rps": 129.53,
+        "p50_ms": 63.308,
+        "p95_ms": 68.344,
+        "p99_ms": 110.996,
+        "server_cpu_ms_per_request": 8.494,
+        "server_cores_busy": 1.119,
+        "client_cores_busy": 0.051,
+        "memory_mib": 176.7,
+        "runs": 3,
+        "errors": 0
+      },
+      "ratio": {
+        "throughput_rps": 0.775,
+        "p50_ms": 1.319,
+        "p95_ms": 1.315,
+        "p99_ms": 1.905,
+        "server_cpu_ms_per_request": 1.331,
+        "server_cores_busy": 1.049,
+        "client_cores_busy": 0.689,
+        "memory_mib": 1.099
+      }
+    },
+    "one-null-knn": {
+      "control": {
+        "throughput_rps": 62.97,
+        "p50_ms": 127.757,
+        "p95_ms": 128.406,
+        "p99_ms": 155.629,
+        "server_cpu_ms_per_request": 24.335,
+        "server_cores_busy": 1.532,
+        "client_cores_busy": 0.034,
+        "memory_mib": 161.3,
+        "runs": 3,
+        "errors": 0
+      },
+      "candidate": {
+        "throughput_rps": 72.46,
+        "p50_ms": 112.203,
+        "p95_ms": 131.476,
+        "p99_ms": 155.477,
+        "server_cpu_ms_per_request": 36.48,
+        "server_cores_busy": 2.654,
+        "client_cores_busy": 0.032,
+        "memory_mib": 228.2,
+        "runs": 3,
+        "errors": 0
+      },
+      "ratio": {
+        "throughput_rps": 1.151,
+        "p50_ms": 0.878,
+        "p95_ms": 1.024,
+        "p99_ms": 0.999,
+        "server_cpu_ms_per_request": 1.499,
+        "server_cores_busy": 1.732,
+        "client_cores_busy": 0.941,
+        "memory_mib": 1.415
+      }
+    },
+    "zipcode-only": {
+      "control": {
+        "throughput_rps": 57.28,
+        "p50_ms": 139.857,
+        "p95_ms": 143.454,
+        "p99_ms": 171.818,
+        "server_cpu_ms_per_request": 26.809,
+        "server_cores_busy": 1.537,
+        "client_cores_busy": 0.029,
+        "memory_mib": 161.4,
+        "runs": 3,
+        "errors": 0
+      },
+      "candidate": {
+        "throughput_rps": 67.31,
+        "p50_ms": 120.277,
+        "p95_ms": 144.019,
+        "p99_ms": 163.923,
+        "server_cpu_ms_per_request": 38.041,
+        "server_cores_busy": 2.561,
+        "client_cores_busy": 0.031,
+        "memory_mib": 241.7,
+        "runs": 3,
+        "errors": 0
+      },
+      "ratio": {
+        "throughput_rps": 1.175,
+        "p50_ms": 0.86,
+        "p95_ms": 1.004,
+        "p99_ms": 0.954,
+        "server_cpu_ms_per_request": 1.419,
+        "server_cores_busy": 1.666,
+        "client_cores_busy": 1.069,
+        "memory_mib": 1.498
+      }
+    }
+  },
+  "finished_at": "2026-11-08T23:04:51Z"
+}

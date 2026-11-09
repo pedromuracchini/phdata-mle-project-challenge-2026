@@ -16,7 +16,11 @@ behaviour change:
   (docs/adr/001-uv-and-python-version.md); a further interpreter change must be verified the
   same way before ``.python-version`` moves.
 
-Never regenerate or edit the fixture to make this test pass (CLAUDE.md, hard rules).
+Never regenerate or edit the fixture to make this test pass (CLAUDE.md, hard rules). The one
+approved exception is listed in the fixture's top-level ``amendments``: row 99 is an exact tie
+at the model's 5th neighbour, which scikit-learn breaks by OpenMP thread count. v0 recorded it
+with the host's default thread count; Phase 4 pins one thread per process, so its recorded
+value was amended (with the human's approval) to the deterministic one-thread result.
 """
 
 from __future__ import annotations

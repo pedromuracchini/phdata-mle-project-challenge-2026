@@ -7,17 +7,26 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.datastructures import State
 
 from api.endpoints import router as api_router
 from api.errors import register_error_handlers
-from core.artifacts import load_imputer
-from core.config import get_settings
+from core.artifacts import load_demographics, load_imputer, load_model
+from core.config import Settings, get_settings
+
+
+def load_artifacts(state: State, settings: Settings) -> None:
+    """Load every artifact the route reads onto ``state``; raises ``ArtifactError`` if invalid."""
+    model = load_model(settings)
+    state.model = model
+    state.demographics = load_demographics(settings, model.features)
+    state.imputer = load_imputer(settings)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Load artifacts before the first request; fail startup if any is invalid."""
-    app.state.imputer = load_imputer(get_settings())
+    """Load every artifact once, before the first request; fail startup if any is invalid."""
+    load_artifacts(app.state, get_settings())
     yield
 
 

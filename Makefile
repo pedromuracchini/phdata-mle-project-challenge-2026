@@ -1,6 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
-	setup test test-hooks test-docker lint typecheck bench docker-build docker-run \
-	fit-imputer check-imputer evaluate-imputation
+	setup test test-hooks test-docker lint typecheck bench docker-build docker-run docker-dev \
+	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence
 
 # Build the test Docker image
 test-build:
@@ -53,6 +53,9 @@ require = @command -v $(1) >/dev/null 2>&1 || { \
 
 UV_RUN = uv run --frozen
 
+# Same thread-pool limits as the images (Dockerfile): the host tests run what production runs.
+THREAD_ENV = OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+
 # Install Python (.python-version) and the locked runtime + dev dependencies into .venv.
 setup:
 	$(call require,uv)
@@ -61,7 +64,7 @@ setup:
 # Hook tests, unit tests and the characterization test, on the host through uv.
 test: test-hooks
 	$(call require,uv)
-	$(UV_RUN) pytest tests/unit $(CHARACTERIZATION_TEST)
+	$(THREAD_ENV) $(UV_RUN) pytest tests/unit $(CHARACTERIZATION_TEST)
 
 # Characterization test inside the test image: complete requests must reproduce
 # tests/fixtures/baseline_predictions.json with the image's (locked) library versions.
@@ -99,6 +102,33 @@ bench:
 	@mkdir -p $(dir $(BENCH_OUTPUT))
 	$(UV_RUN) python scripts/benchmark.py --base-url $(BENCH_URL) --profile $(BENCH_PROFILE) --output $(BENCH_OUTPUT)
 
+# Interleaved A/B benchmark (Phase 4 method, scripts/ab_bench.py): builds CONTROL and
+# CANDIDATE (a git ref, or `worktree` for the working tree as it is), then runs them A,B / B,A /
+# A,B with a fresh container per run, server pinned to AB_SERVER_CPUS and the client to
+# AB_CLIENT_CPUS. AB_CONTROL_ARGS / AB_CANDIDATE_ARGS add `docker run` options to one arm.
+# Server layout: all CPUs (0-15) until the BLAS/OpenMP threads are limited, because pinning
+# main to fewer CPUs makes its OpenMP pool ~2x slower (docs/benchmarks/phase-4-performance.md);
+# AB_SERVER_CPUS=0-11 (client-isolated) from the worker sweep on.
+CONTROL ?= main
+CANDIDATE ?= worktree
+AB_REQUESTS ?= 500
+AB_ROUNDS ?= 3
+AB_PROFILES ?= complete one-null-knn zipcode-only
+AB_SERVER_CPUS ?= 0-15
+AB_CLIENT_CPUS ?= 12-15
+AB_CONTROL_ARGS ?=
+AB_CANDIDATE_ARGS ?=
+AB_LABEL ?=
+AB_OUTPUT ?= bench-results/ab-$(shell date -u +%Y%m%dT%H%M%SZ).json
+ab-bench:
+	$(call require,uv)
+	$(call require,docker)
+	$(UV_RUN) python scripts/ab_bench.py --control $(CONTROL) --candidate $(CANDIDATE) \
+		--requests $(AB_REQUESTS) --rounds $(AB_ROUNDS) --profiles $(AB_PROFILES) \
+		--server-cpus $(AB_SERVER_CPUS) --client-cpus $(AB_CLIENT_CPUS) \
+		--control-args "$(AB_CONTROL_ARGS)" --candidate-args "$(AB_CANDIDATE_ARGS)" \
+		--label "$(AB_LABEL)" --output $(AB_OUTPUT)
+
 # The KNN imputer artifact is committed (like model.pkl) and baked into the image. Fit it once
 # in the locked environment; check-imputer refits in memory and fails on any difference.
 fit-imputer:
@@ -115,13 +145,34 @@ evaluate-imputation:
 	$(call require,uv)
 	$(UV_RUN) python scripts/evaluate_imputation.py
 
+# Bit-for-bit check of the imputation path (scripts/check_equivalence.py): every unseen row x
+# every null pattern through the working tree's image, compared with the reference generated
+# from main's image (model input after imputation, prediction, imputed_fields).
+EQUIVALENCE_REFERENCE ?= tests/fixtures/imputation_reference.json
+check-equivalence: check-imputer
+	$(call require,docker)
+	docker build -q -t $(IMAGE):equivalence . >/dev/null
+	docker run --rm -w /app --user $(HOST_USER) \
+		-v $(PWD)/scripts:/scripts:ro -v $(PWD)/$(dir $(EQUIVALENCE_REFERENCE)):/ref:ro \
+		$(IMAGE):equivalence python /scripts/check_equivalence.py \
+		--check /ref/$(notdir $(EQUIVALENCE_REFERENCE))
+
 # The image bakes src/model/imputer.joblib in: refuse to build without a valid artifact.
 docker-build: check-imputer
 	docker build -t $(IMAGE) .
 
-# Runs in the foreground; Ctrl+C stops and removes the container.
+# Runs in the foreground; Ctrl+C stops and removes the container. WORKERS=N sets the number of
+# uvicorn worker processes (WEB_CONCURRENCY; the image's default is 1).
 docker-run:
-	docker run --rm -p $(PORT):8000 --name $(CONTAINER) $(IMAGE)
+	docker run --rm -p $(PORT):8000 --name $(CONTAINER) \
+		$(if $(WORKERS),-e WEB_CONCURRENCY=$(WORKERS)) $(IMAGE)
+
+# Development only: the host's src/ is mounted and uvicorn reloads on every change. One process
+# (--reload and workers are exclusive). Not for benchmarks: the reloader polls the source tree.
+docker-dev: docker-build
+	docker run --rm -p $(PORT):8000 --name $(CONTAINER)-dev -v "$(CURDIR)/src:/src:ro" \
+		$(IMAGE) uvicorn main:app --app-dir /src --host 0.0.0.0 --port 8000 \
+		--http core.server:NoDelayH11Protocol --reload --reload-dir /src
 
 # Display help information
 help:
@@ -143,11 +194,14 @@ help:
 	@echo "  lint              - Run ruff lint and format check"
 	@echo "  typecheck         - Run mypy"
 	@echo "  bench             - Benchmark the running API (BENCH_URL=$(BENCH_URL))"
+	@echo "  ab-bench          - Interleaved A/B benchmark: CONTROL=<ref> vs CANDIDATE=<ref|worktree>"
+	@echo "  check-equivalence - Imputation path bit-for-bit vs the reference from main (Docker)"
 	@echo "  fit-imputer       - Fit the KNN imputer and write src/model/imputer.joblib"
 	@echo "  check-imputer     - Refit in memory; fail if the committed imputer differs"
 	@echo "  evaluate-imputation - Compare imputation methods (docs/imputation/)"
 	@echo "  docker-build      - Build the API image (runs check-imputer first)"
-	@echo "  docker-run        - Run the API on port $(PORT)"
+	@echo "  docker-run        - Run the API on port $(PORT) (WORKERS=N for N processes)"
+	@echo "  docker-dev        - Run the API with src/ mounted and auto-reload (development)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-unit              # Quick unit tests"

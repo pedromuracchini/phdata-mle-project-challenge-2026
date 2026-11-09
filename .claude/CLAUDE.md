@@ -30,7 +30,8 @@ Always use the Makefile targets; do not invent ad-hoc commands.
 | Verify imputer artifact | `make check-imputer` |
 | Evaluate imputation | `make evaluate-imputation` |
 | Build image | `make docker-build` (runs `check-imputer` first) |
-| Run API in Docker | `make docker-run` |
+| Run API in Docker | `make docker-run` (`WORKERS=N` for N worker processes) |
+| Run API with auto-reload (dev) | `make docker-dev` |
 
 Run `make lint typecheck test` before declaring any task done. A task is not done while any of
 them fails.
@@ -86,8 +87,9 @@ the model's train split. Deviations are adopted only on evidence from
 is given) and rounding/clipping (no measurable effect; if ever revisited, `floors` rounds to
 0.5, not to an integer). `model_version` in the response is deferred to Phase 5.
 
-Phase 3 loads the imputer in the `lifespan`, but the per-request model/CSV loading stays until
-Phase 4 fixes and measures it.
+Since Phase 4 the `lifespan` (`main.load_artifacts`) loads the model, the feature order, the
+demographics (a zipcode -> model-order row lookup, `core.artifacts.load_demographics`) and the
+imputer; `services/prediction.py` builds the request's frame from the lookup.
 
 If the notebook and this file disagree, stop and flag it — do not silently pick one.
 
@@ -172,6 +174,17 @@ command, fix the cause or ask the human — never look for a way around it.
   `docs/benchmarks/`. Do not claim a speed-up without numbers.
 - Profile (py-spy or cProfile) before optimizing; optimize what the profile shows.
 - One optimization per commit, with the characterization test passing at each step.
+- One BLAS/OpenMP thread per process (`OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`,
+  `MKL_NUM_THREADS` = 1 in `Dockerfile`, `Dockerfile.test` and the Makefile's `THREAD_ENV`;
+  `tests/unit/test_thread_limits.py` keeps them in sync). Scale with workers, not threads.
+  The OpenMP count is part of the results: scikit-learn's KNN breaks exact distance ties by
+  thread chunking, so changing it changes predictions (baseline row 99). Ask before changing it.
+- Worker processes come from `WEB_CONCURRENCY` (uvicorn's own variable; image default in the
+  `Dockerfile`). Keep workers x threads <= the physical cores the container gets (hyperthreads
+  added nothing, step 8b). Never put `--reload` or
+  `--workers` in the production `CMD` (`tests/unit/test_server_command.py`).
+- Serve with `--http core.server:NoDelayH11Protocol` (production `CMD` and `make docker-dev`):
+  with workers or reload, uvicorn leaves Nagle on and every response waits ~44 ms for an ACK.
 
 ## Decisions and AI log
 
