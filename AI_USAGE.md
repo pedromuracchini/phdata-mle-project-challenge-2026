@@ -18,6 +18,47 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-08: chose py-spy to diagnose the native thread pools
+
+- **Phase / task:** Phase 4, step 3 (profile main's KNN requests).
+- **Asked:** profile before optimizing; py-spy was allowed as a throwaway sidecar.
+- **Produced:** the agent used py-spy to look into the OpenBLAS/OpenMP contention. py-spy
+  samples Python stacks, so it cannot see inside the native pools. Its stop-the-world sampling
+  also distorts threads that spin-wait. The sidecar first needed two fixes (a missing `pgrep`,
+  then a grep matching its own shell).
+- **Caught by:** the agent, when the py-spy output did not account for the measured CPU time.
+- **Outcome:** the py-spy result was not used. The diagnosis used per-thread `top -H` and
+  cProfile runs with each pool limited in turn (committed in step 3). Lesson: pick the profiler
+  for the layer in question; for native thread pools, use per-thread OS views or toggle the
+  pools.
+
+### 2026-11-08: ran two long equivalence checks in parallel, which saved no time
+
+- **Phase / task:** Phase 4, building the bit-exact equivalence gate.
+- **Asked:** how long the equivalence checks would take.
+- **Produced:** the agent ran two ~32-minute checks (main's reference and a candidate) at the
+  same time to save wall-clock time. Each already used every core through the unlimited thread
+  pools, so together they took as long as running them one after the other (load average 37).
+- **Caught by:** the agent, from the timings; reported to the human as such.
+- **Outcome:** later long runs went one after the other, and nothing else ran during
+  benchmarks. Lesson: two CPU-bound jobs that each fill the machine gain nothing from running
+  in parallel.
+
+### 2026-11-08: profiles meant to run with `OMP_NUM_THREADS=1` ran without the limit (zsh)
+
+- **Phase / task:** Phase 4, step 3 (profile main with each thread pool limited).
+- **Asked:** profile main's KNN request with the thread pools limited, to find the contention.
+- **Produced:** the agent passed the limits through an unquoted shell variable
+  (`docker run $ENV_ARGS ...`). zsh does not word-split unquoted variables, so the variable
+  went through as one malformed argument and the first `-omp1` profiles ran with no limit at
+  all. Nothing failed.
+- **Caught by:** the agent, because those profiles' timings matched the unlimited run.
+- **Outcome:** the profiles were discarded and rerun with explicit `-e` arguments.
+  `scripts/profile_predict.py` now prints `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and
+  `MKL_NUM_THREADS` in every report header, so a run shows the limits it actually had.
+  Lesson: have experiments record the configuration they ran with, instead of trusting the
+  command line.
+
 ### 2026-11-08: proposed re-implementing the KNN imputer's transform (rejected)
 
 - **Phase / task:** Phase 4, step 9 (KNN path).
