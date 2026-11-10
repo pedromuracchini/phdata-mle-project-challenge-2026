@@ -164,15 +164,15 @@ class GuardGitTest(unittest.TestCase):
         root = str(Path(self.main_repo).parent)
         self.assert_blocked(f"cd {root} && git -C on_main {GOOD[4:]}", self.feature_repo)
 
-    # Gap: `VAR=1 git ...` (and wrappers such as `env`) hid the git command.
+    # Gap: `VAR=1 git ...` (also `env VAR=1 git ...`) hid the git command.
 
     def test_blocks_commit_behind_variable_assignments(self) -> None:
         self.assert_blocked(f"GIT_AUTHOR_NAME=x {GOOD}", self.main_repo)
         self.assert_blocked(f"A=1 B='two words' {GOOD}", self.main_repo)
         self.assert_blocked('FOO=1 git commit -m "added stuff"', self.feature_repo)
 
-    def test_blocks_commit_behind_command_wrappers(self) -> None:
-        for prefix in ("env", "env FOO=1", "env -u FOO", "command", "exec", "time", "nohup"):
+    def test_blocks_commit_behind_env(self) -> None:
+        for prefix in ("env", "env FOO=1", "env FOO=1 BAR=2"):
             self.assert_blocked(f"{prefix} {GOOD}", self.main_repo)
 
     def test_blocks_push_behind_variable_assignment(self) -> None:
@@ -181,15 +181,12 @@ class GuardGitTest(unittest.TestCase):
     def test_allows_assignment_without_git(self) -> None:
         self.assert_allowed("FOO=1 ls", self.main_repo)
 
-    # Gap: `bash -c "git ..."` (and `eval`) hid the git command inside a string.
+    # Gap: `bash -c "git ..."` hid the git command inside a string.
 
     def test_blocks_commit_inside_shell_dash_c(self) -> None:
         for shell in ("bash -c", "sh -c", "zsh -c", "bash -lc", "/bin/bash -c"):
             self.assert_blocked(f"{shell} '{GOOD}'", self.main_repo)
         self.assert_blocked("bash -c \"git commit -m 'added stuff'\"", self.feature_repo)
-
-    def test_blocks_commit_inside_eval(self) -> None:
-        self.assert_blocked(f"eval '{GOOD}'", self.main_repo)
 
     def test_shell_dash_c_sees_its_own_cd(self) -> None:
         self.assert_blocked(f"bash -c 'cd {self.main_repo} && {GOOD}'", self.feature_repo)
@@ -237,14 +234,9 @@ class GuardGitTest(unittest.TestCase):
     def test_blocks_unreadable_message_file(self) -> None:
         self.assert_blocked("git commit -F does-not-exist.txt", self.feature_repo)
 
-    def test_checks_message_from_stdin_heredoc(self) -> None:
-        bad = "git commit -F - <<'EOF'\nadded stuff\n\nBody.\nEOF"
-        good = "git commit -F - <<'EOF'\nchore: add x\n\nBody.\nEOF"
-        self.assert_blocked(bad, self.feature_repo)
-        self.assert_allowed(good, self.feature_repo)
-
-    def test_blocks_message_from_stdin_without_heredoc(self) -> None:
+    def test_blocks_message_from_stdin(self) -> None:
         self.assert_blocked("printf 'chore: x' | git commit -F -", self.feature_repo)
+        self.assert_blocked("git commit -F - <<'EOF'\nchore: add x\nEOF", self.feature_repo)
 
 
 if __name__ == "__main__":

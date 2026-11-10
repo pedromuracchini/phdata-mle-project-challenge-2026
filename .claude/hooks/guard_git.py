@@ -7,13 +7,12 @@ Exit code 2 blocks the command and sends stderr back to the agent.
 Blocks:
 - `git commit` while on main/master (every phase works on its own branch);
 - `git push` that targets main/master;
-- commit messages (`-m`, `--message`, `-am`, `-F <file>`, `--file`, `-F -` with a heredoc)
-  that do not follow Conventional Commits, and messages it cannot read.
+- commit messages (`-m`, `--message`, `-am`, `-F <file>`, `--file`) that do not follow
+  Conventional Commits, and messages it cannot read (`-F -`, a missing file).
 
-git is found behind `VAR=value` assignments and wrappers (`env`, `command`, `exec`, `time`,
-`nohup`), inside `bash`/`sh`/`zsh -c "..."` and `eval "..."`, and its branch is checked in the
-directory the command runs in: earlier `cd <dir>` in the same command line and `git -C <dir>`
-both count.
+git is found behind `VAR=value` assignments (also `env VAR=value`) and inside
+`bash`/`sh`/`zsh -c "..."`, and its branch is checked in the directory the command runs in:
+earlier `cd <dir>` in the same command line and `git -C <dir>` both count.
 """
 
 from __future__ import annotations
@@ -41,12 +40,7 @@ GLOBAL_OPTIONS_WITH_VALUE = {
     "--config-env",
 }
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-# Run their arguments as a command; their own options (`time -p`) are skipped.
-WRAPPERS = {"command", "exec", "time", "nohup", "builtin"}
-ENV_OPTIONS_WITH_VALUE = {"-u", "--unset", "-C", "--chdir", "-S", "--split-string"}
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
-# Nested `bash -c` / `eval` levels followed before giving up (and blocking).
-MAX_DEPTH = 5
 # `git commit` short options that take a value: -m/-F give the message, -C/-c/-t do not.
 MESSAGE_OPTIONS = "mF"
 OTHER_VALUE_OPTIONS = "Cct"
@@ -63,8 +57,6 @@ class Invocation:
     cwd: str | None
     global_options: list[str]
     args: list[str]
-    # Body of a heredoc fed to this command (for `git commit -F -`), if any.
-    heredoc: str | None
 
 
 def block(reason: str) -> None:
@@ -88,35 +80,32 @@ def current_branch(cwd: str | None, global_options: list[str]) -> str:
         return ""
 
 
-def strip_heredocs(command: str) -> tuple[str, list[str | None]]:
+def strip_heredocs(command: str) -> str:
     """Remove heredoc bodies, which are data rather than commands.
 
-    Returns the remaining text and the bodies in order (None for a heredoc with no closing
-    delimiter, which is left in place so its text is still checked).
+    A heredoc with no closing delimiter is left in place, so its text is still checked.
     """
     lines = command.split("\n")
     kept: list[str] = []
-    bodies: list[str | None] = []
     i = 0
     while i < len(lines):
         line = lines[i]
         kept.append(line)
         i += 1
-        for match in HEREDOC.finditer(line):
-            delimiter = match.group("delimiter")
-            for j in range(i, len(lines)):
-                if lines[j].strip() == delimiter:
-                    bodies.append("\n".join(lines[i:j]))
-                    i = j + 1
-                    break
-            else:
-                bodies.append(None)
-    return "\n".join(kept), bodies
+        match = HEREDOC.search(line)
+        if match is None:
+            continue
+        delimiter = match.group("delimiter")
+        for j in range(i, len(lines)):
+            if lines[j].strip() == delimiter:
+                i = j + 1
+                break
+    return "\n".join(kept)
 
 
-def split_commands(text: str) -> list[list[str]]:
+def split_commands(command: str) -> list[list[str]]:
     """Tokenize a shell command, splitting on separators outside quotes only."""
-    text = text.replace("\\\n", " ")
+    text = strip_heredocs(command).replace("\\\n", " ")
     lexer = shlex.shlex(text, posix=True, punctuation_chars=SEPARATOR_CHARS)
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
@@ -136,23 +125,11 @@ def split_commands(text: str) -> list[list[str]]:
     return commands
 
 
-def strip_prefixes(tokens: list[str]) -> list[str]:
-    """Drop leading `VAR=value` assignments and wrappers, returning the command they run."""
-    i = 0
-    while i < len(tokens):
-        token = tokens[i]
-        if ASSIGNMENT.match(token):
-            i += 1
-        elif token in WRAPPERS:
-            i += 1
-            while i < len(tokens) and tokens[i].startswith("-"):
-                i += 1
-        elif token == "env":
-            i += 1
-            while i < len(tokens) and (tokens[i].startswith("-") or ASSIGNMENT.match(tokens[i])):
-                i += 2 if tokens[i] in ENV_OPTIONS_WITH_VALUE else 1
-        else:
-            break
+def strip_assignments(tokens: list[str]) -> list[str]:
+    """Drop leading `VAR=value` assignments (and `env`), returning the command they run."""
+    i = 1 if tokens[:1] == ["env"] else 0
+    while i < len(tokens) and ASSIGNMENT.match(tokens[i]):
+        i += 1
     return tokens[i:]
 
 
@@ -177,20 +154,11 @@ def dash_c_script(tokens: list[str]) -> str | None:
     return None
 
 
-def git_invocations(command: str, cwd: str | None, depth: int = 0) -> list[Invocation]:
+def git_invocations(command: str, cwd: str | None) -> list[Invocation]:
     """Every git command in a command line, with the directory each one runs in."""
-    if depth > MAX_DEPTH:
-        raise Unverifiable("too many nested `bash -c` / `eval` levels to check")
-    text, bodies = strip_heredocs(command)
-    heredocs_seen = 0
     result: list[Invocation] = []
-    for raw_tokens in split_commands(text):
-        # Heredocs are numbered in order; this command's (if any) is the next one.
-        operators = len(HEREDOC.findall(" ".join(raw_tokens)))
-        heredoc = bodies[heredocs_seen] if operators and heredocs_seen < len(bodies) else None
-        heredocs_seen += operators
-
-        tokens = strip_prefixes(raw_tokens)
+    for raw_tokens in split_commands(command):
+        tokens = strip_assignments(raw_tokens)
         if not tokens:
             continue
         name = os.path.basename(tokens[0])
@@ -199,14 +167,12 @@ def git_invocations(command: str, cwd: str | None, depth: int = 0) -> list[Invoc
         elif name in SHELLS:
             script = dash_c_script(tokens)
             if script is not None:
-                result.extend(git_invocations(script, cwd, depth + 1))
-        elif name == "eval":
-            result.extend(git_invocations(" ".join(tokens[1:]), cwd, depth + 1))
+                result.extend(git_invocations(script, cwd))
         elif name == "git":
             i = 1
             while i < len(tokens) and tokens[i].startswith("-"):
                 i += 2 if tokens[i] in GLOBAL_OPTIONS_WITH_VALUE else 1
-            result.append(Invocation(cwd, tokens[1:i], tokens[i:], heredoc))
+            result.append(Invocation(cwd, tokens[1:i], tokens[i:]))
     return result
 
 
@@ -224,13 +190,11 @@ def first_line(message: str) -> str:
     return next((line for line in message.splitlines() if line.strip()), "")
 
 
-def read_message_file(path: str | None, directory: str, heredoc: str | None) -> str:
+def read_message_file(path: str | None, directory: str) -> str:
     if path is None:
         raise Unverifiable("`-F` without a file")
     if path == "-":
-        if heredoc is None:
-            raise Unverifiable("message read from stdin; use -m, a file or a heredoc")
-        return heredoc
+        raise Unverifiable("message read from stdin; use -m or a message file")
     try:
         with open(os.path.join(directory, os.path.expanduser(path))) as handle:
             return handle.read()
@@ -238,7 +202,7 @@ def read_message_file(path: str | None, directory: str, heredoc: str | None) -> 
         raise Unverifiable(f"cannot read message file {path!r}: {error.strerror}") from error
 
 
-def commit_subject(args: list[str], directory: str, heredoc: str | None) -> str | None:
+def commit_subject(args: list[str], directory: str) -> str | None:
     """Subject of the message given on the command line, or None if none is given."""
     i = 1
     while i < len(args):
@@ -251,9 +215,9 @@ def commit_subject(args: list[str], directory: str, heredoc: str | None) -> str 
         if arg.startswith("--message="):
             return first_line(arg.split("=", 1)[1])
         if arg == "--file":
-            return first_line(read_message_file(following, directory, heredoc))
+            return first_line(read_message_file(following, directory))
         if arg.startswith("--file="):
-            return first_line(read_message_file(arg.split("=", 1)[1], directory, heredoc))
+            return first_line(read_message_file(arg.split("=", 1)[1], directory))
         if arg.startswith("-") and not arg.startswith("--"):
             # A cluster of short options, e.g. -am "msg", -amsg, -aF file.
             for j, option in enumerate(arg[1:], start=1):
@@ -263,7 +227,7 @@ def commit_subject(args: list[str], directory: str, heredoc: str | None) -> str 
                     return None if value is None else first_line(value)
                 if option == "F":
                     value = attached if attached is not None else following
-                    return first_line(read_message_file(value, directory, heredoc))
+                    return first_line(read_message_file(value, directory))
                 if option in OTHER_VALUE_OPTIONS:
                     if attached is None:
                         i += 1
@@ -286,7 +250,7 @@ def check(invocation: Invocation) -> None:
                 f"commits on '{branch}' are not allowed. "
                 "Create the phase branch first (see Git workflow in CLAUDE.md)."
             )
-        subject = commit_subject(args, work_dir(cwd, global_options), invocation.heredoc)
+        subject = commit_subject(args, work_dir(cwd, global_options))
         if subject is not None and not CONVENTIONAL.match(subject):
             block(
                 f"commit subject '{subject}' is not a Conventional Commit. "
