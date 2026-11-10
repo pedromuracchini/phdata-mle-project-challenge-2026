@@ -315,3 +315,59 @@ push cancels the running one):
 `check-equivalence` and `ab-bench` are not in CI: they were run by hand as gates for every
 change to the request path in Phases 4 and 5 ([ADR 004](docs/adr/004-serving-performance.md),
 [ADR 005](docs/adr/005-production-readiness.md)).
+
+## Known gaps
+
+Still open at the end of the project, each with its source.
+
+**Accuracy**
+
+- **Zipcode-only requests are poor**: MAPE 35.05%, against 17.77% with complete data and
+  30.63% for a plain median imputer. Same-zipcode donors all tie at distance 0, so KNN takes
+  five arbitrary houses from the zipcode. A median fallback for this case (and per feature for
+  `sqft_lot`, where the median also wins: 18.49 vs 19.15%) looks better but was not evaluated as
+  a pipeline and is not implemented. It needs its own evaluation and ADR
+  ([ADR 003](docs/adr/003-imputation-design.md), [`imputation_report.md`](docs/imputation_report.md)).
+- **Limits of the accuracy evidence**: missingness simulated as missing completely at random;
+  one split; pairs of missing fields tested only for "no 500"; the contradictory-sqft fallback
+  to KNN is unit-tested but its accuracy was never measured (ADR 003).
+
+**Operations**
+
+- **The first two uvicorn startup lines are plain text** on stderr (`INFO:     Started server
+  process [1]`, `INFO:     Waiting for application startup.`); every line after them is JSON.
+  Fixing it would mean `--log-config`, which changes the Phase 4 `CMD`
+  ([ADR 005](docs/adr/005-production-readiness.md)).
+- **A 500 logs two tracebacks**: ours, with `request_id`, then uvicorn's "Exception in ASGI
+  application" (ADR 005).
+- **Scripts that import the app print some log lines twice** (their own handler and ours)
+  (ADR 005).
+- **`/metrics` is on the API port, without authentication.** Expose it only on the internal
+  network (ADR 005).
+- **No alert thresholds** are defined for the drift and input-quality metrics
+  (`predicted_price_dollars`, `prediction_missing_fields_total`, [`docs/api.md`](docs/api.md)).
+- **`/tmp/prometheus` must be writable**; with a read-only root filesystem, mount a tmpfs there
+  (Configuration).
+- **Base-image digests are bumped by hand**: they are pinned, so OS security patches do not
+  arrive on their own, and CI does not check for new ones (ADR 001).
+
+**Performance**
+
+- **Six workers lose 9–18% throughput on complete requests vs Phase 4**, mostly in runs where
+  the server leaves cores idle; the cause is not known. Finding it needs profiling under load
+  (off-CPU time per worker) ([`phase-5-production.md`](docs/benchmarks/phase-5-production.md),
+  "The 6-worker cost").
+- **The benchmarks come from one machine** (AMD Ryzen 7 5700U, 8 cores / 16 threads, one cpuset layout, closed-loop
+  load of 8 clients); other hardware was not measured ([`final.md`](docs/benchmarks/final.md)).
+- **`check-equivalence` and `ab-bench` are not in CI**; they are manual gates.
+
+**Maintenance**
+
+- **`core.server` subclasses uvicorn's `H11Protocol`**, which is not public API, to set
+  `TCP_NODELAY`. `tests/unit/test_server_protocol.py` fails if the class moves or if uvicorn
+  fixes the underlying bug, at which point the workaround should go (ADR 004).
+- **Artifacts are pickles.** `model.pkl` and `imputer.joblib` run code when loaded, so they must
+  come only from this repository; the sha256 in the metadata is a consistency check, not tamper
+  protection ([ADR 002](docs/adr/002-persisted-imputer-artifact.md)).
+- **`model_version` changes on a byte-identical refit** of the imputer, because the metadata's
+  `fitted_at` changes; a refit is treated as a deploy (ADR 005).
