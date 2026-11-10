@@ -74,7 +74,8 @@ Measured results: [`../benchmarks/phase-2-uv.md`](../benchmarks/phase-2-uv.md).
 - Changing Python means editing `.python-version`, `requires-python`, the three Dockerfiles and
   the ruff/mypy targets together, then verifying predictions as in Step B before merging.
 - The base image is pinned by digest, so OS security patches do not arrive on their own: bump
-  the digest periodically (Phase 5 CI can automate a check).
+  the digest periodically. (Phase 5 CI does not automate this check; it is still a manual
+  step.)
 - On 3.12 the API image is 29 MB larger than on 3.10 (precompiled bytecode is bigger in 3.12);
   request performance did not regress (benchmarks linked above).
 - Contributors need uv installed; `make` targets fail with a clear message otherwise.

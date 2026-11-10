@@ -93,7 +93,8 @@
     `X-Request-ID`, `X-Request-ID` exposed, and no credentials.
 12. The image runs as `app` (uid 10001) with the code and artifacts owned by root. HEALTHCHECK
     probes `/health` with Python's urllib (every 30 s, every 1 s during a 30 s start period),
-    and curl is gone: 684 MB, down from 703 MB. Base images are pinned by digest.
+    and curl is gone: 684 MB, down from 703 MB (at that commit; 685 MB at the end of the phase,
+    with `prometheus-client`). Base images are pinned by digest.
 13. CI (GitHub Actions, push and PR) runs two jobs:
     - lint, typecheck, tests (with a coverage summary, not gated) and `check-imputer`;
     - building the production image and running the characterization baseline against it
@@ -153,6 +154,10 @@ Against 7257ac9, final image (4af84ce), medians of 3 rounds, server pinned to 6 
 - **Performance:** about 1 ms of CPU per request goes to observability. One worker keeps Phase
   4's throughput within 3%. Six workers lose ~18% on complete requests for a reason not yet
   understood; finding it would need profiling the multiprocess metrics path under load.
+  *Update (Phase 6):* a longer run (5,000 requests per run, 5 rounds) measured 0.91× with six
+  workers. Part of the loss is the extra CPU per request; most of it came in runs with idle
+  cores and less CPU per request, so it is not a CPU cost. The cause is still unknown
+  ([`phase-5-production.md`](../benchmarks/phase-5-production.md), "The 6-worker cost").
 - **Running the image:** the image needs a writable `/tmp/prometheus` (a read-only root
   filesystem needs a volume or tmpfs there). `docker run --user <uid>` works because the
   directory is mode 1777.
