@@ -4,7 +4,8 @@ The service listens on port 8000. FastAPI also serves the generated OpenAPI sche
 and `/openapi.json` (`/metrics` is left out of it). Design and reasons:
 [ADR 003](adr/003-imputation-design.md) (missing data) and
 [ADR 005](adr/005-production-readiness.md) (error contract, observability). Every example
-response below was captured from the image built from this repository.
+response below was captured from the image built from this repository; the values are exact,
+but the JSON is spaced and wrapped for reading (the server sends it compact, as in the README).
 
 ## Breaking change vs v0
 
@@ -162,7 +163,8 @@ all workers (ADR 005, decision 10).
 | `prediction_missing_fields_total` | counter | `feature` | Each house field that was missing (and imputed). The input-quality signal. |
 | `predicted_price_dollars` | histogram | | Every predicted price. **The drift signal** (below). |
 
-Excerpt after the demo (`make demo`):
+Excerpt after `make demo` on a freshly started container (any request sent before the demo
+adds to these counts):
 
 ```
 http_requests_total{method="POST",route="/predict",status="200"} 3.0

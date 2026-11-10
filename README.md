@@ -75,9 +75,11 @@ curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json
 
 `make demo` walks through the rest of the contract against the running container: nulls and
 `imputed_fields`, the 422 cases, `X-Request-ID`, `/ready` and `/metrics`. The interactive
-OpenAPI page is at <http://localhost:8000/docs>. `make help` lists every target; it starts with
-the Docker test targets kept from v0 (`test-unit`, `test-integration`, `test-all`), but the quick
-path is `make test` (Testing and CI).
+OpenAPI page is at <http://localhost:8000/docs>. `make help` lists every target. Its first group,
+under the heading "Docker-Based Testing Makefile", is kept from v0 (`test-build`, `test-unit`,
+`test-integration`, `test-all`, `clean`, `help`); the quick path for tests is `make test`
+(Testing and CI). Stopping `make docker-run` with Ctrl+C makes `make` exit with status 1; that
+is the interrupt, not a failure.
 
 ## Configuration
 
@@ -108,6 +110,9 @@ volume there, or the workers exit at startup
 docker run --rm --name housing-api-ro --read-only --tmpfs /tmp/prometheus:mode=1777 \
     -p 8000:8000 mle-project-challenge-2026
 ```
+
+It needs the image from `make docker-build`, runs in the foreground (Ctrl+C stops and removes
+it), and uses port 8000, so stop `make docker-run` first.
 
 Fixed by the image, **not** meant to be changed: `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and
 `MKL_NUM_THREADS` are `1`. Besides performance, the OpenMP count decides how scikit-learn's KNN
