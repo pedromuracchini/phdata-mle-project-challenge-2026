@@ -6,7 +6,7 @@ __pycache__/
 *.py[cod]
 .venv/
 
-# Secrets: never commit. A committed .env.example documents the variables.
+# Secrets: never commit. The variables are documented in README.md (Configuration).
 .env
 .env.*
 !.env.example
@@ -17,7 +17,7 @@ __pycache__/
 .pytest_cache/
 .hypothesis/
 
-# Test output (the Docker test run writes coverage here, owned by root)
+# Test output (the Docker test runs write coverage here, as the host user)
 test-results/
 .coverage
 .coverage.*

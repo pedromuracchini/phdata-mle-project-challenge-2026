@@ -63,3 +63,7 @@
   instead of serving wrong prices.
 - Phase 4 moves the model and the demographics into the same `lifespan` loader; Phase 5 can add
   `model_version` / the imputer hash to the response and logs.
+  *Update (Phase 6):* both done. Phase 4 loads every artifact in `main.load_artifacts`
+  ([ADR 004](004-serving-performance.md)); Phase 5 returns `model_version` (which covers the
+  imputer's hash through its metadata) in `/predict`, `/ready` and every request log line
+  ([ADR 005](005-production-readiness.md)).
