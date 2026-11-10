@@ -68,3 +68,46 @@ curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json
 `make demo` walks through the rest of the contract against the running container: nulls and
 `imputed_fields`, the 422 cases, `X-Request-ID`, `/ready` and `/metrics`. The interactive
 OpenAPI page is at <http://localhost:8000/docs>. `make help` lists every target.
+
+## Configuration
+
+Configuration comes only from environment variables (`src/core/config.py`, the `Dockerfile`).
+Pass them with `docker run -e NAME=value`.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `WEB_CONCURRENCY` | `1` (image) | Number of uvicorn worker processes. Set it at deploy time to the **physical** cores the container gets; hyperthreads added no throughput ([ADR 004](docs/adr/004-serving-performance.md)). Each worker loads its own copy of the artifacts: budget about 140 MiB plus 130 MiB per extra worker. `make docker-run WORKERS=N` sets it. |
+| `APP_CORS_ALLOWED_ORIGINS` | `[]` | Browser origins allowed by CORS, as a JSON list, e.g. `'["https://app.example.com"]'`. Empty: no CORS middleware at all. Server-to-server clients do not need it. Listed origins get GET/POST, the `Content-Type` and `X-Request-ID` headers, and no credentials. |
+| `PROMETHEUS_MULTIPROC_DIR` | `/tmp/prometheus` (image); unset elsewhere | Directory where each worker writes its metric files, so a scrape returns the sum over all workers. The image's `ENTRYPOINT` empties it before uvicorn starts. Unset (tests, local runs), `/metrics` serves the process's own counters. |
+| `APP_MODEL_PATH` | `src/model/model.pkl` | The trained model. |
+| `APP_MODEL_FEATURES_PATH` | `src/model/model_features.json` | The model's feature order. |
+| `APP_DEMOGRAPHICS_PATH` | `src/data/zipcode_demographics.csv` | Zipcode demographics, joined to every request. |
+| `APP_IMPUTER_PATH` | `src/model/imputer.joblib` | The fitted KNN imputer. |
+| `APP_IMPUTER_METADATA_PATH` | `src/model/imputer_metadata.json` | The imputer's hash, parameters, columns and library versions, checked at startup. |
+| `APP_SALES_PATH` | `src/data/kc_house_data.csv` | Training sales. Read only by `make fit-imputer` / `make check-imputer` (rebuilding the train split), never by the server. |
+
+Path defaults are resolved from the code's location, not the working directory: `src/` in the
+repository, `/app` in the image. A missing or inconsistent artifact stops the server at startup
+instead of serving wrong prices.
+
+**`/tmp/prometheus` must be writable.** With a read-only root filesystem, mount a tmpfs or a
+volume there, or the workers exit at startup
+(`OSError: [Errno 30] Read-only file system: '/tmp/prometheus/...'`):
+
+```bash
+docker run --read-only --tmpfs /tmp/prometheus:mode=1777 -p 8000:8000 mle-project-challenge-2026
+```
+
+Fixed by the image, **not** meant to be changed: `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and
+`MKL_NUM_THREADS` are `1`. Besides performance, the OpenMP count decides how scikit-learn's KNN
+breaks exact distance ties, so changing it changes some predictions
+([ADR 004](docs/adr/004-serving-performance.md), decision 3).
+
+`make docker-run` also takes `PORT` (host port, default 8000) and `WORKERS`.
+
+## API
+
+[`docs/api.md`](docs/api.md): request fields and bounds, responses, every 422 case, the 500
+body, `model_version`, `X-Request-ID`, `/health`, `/ready`, `/metrics`, the log line and the
+drift metric. **Breaking change vs v0:** unknown fields are rejected, so a full CSV row (with
+columns the model does not use) now returns 422.
