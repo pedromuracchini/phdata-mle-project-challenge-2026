@@ -10,19 +10,20 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-# What a 422 body keeps of each Pydantic error. ``input`` (the rejected value) and ``ctx``
-# are dropped: an error response never echoes the request back (ADR 005). Dropping ``input``
-# also removes the NaN/Infinity values that FastAPI's default handler failed to serialise.
 logger = logging.getLogger(__name__)
 
-ERROR_KEYS = ("type", "loc", "msg")
 # ``loc`` names the offending key, and for unknown fields that key comes from the client: cap
 # each part so a 422 cannot carry back an arbitrarily long string.
 MAX_LOC_LENGTH = 64
 
 
 def public_error(error: dict[str, Any]) -> dict[str, Any]:
-    """The client-facing part of one validation error: type, location and message."""
+    """The client-facing part of one validation error: type, location and message.
+
+    ``input`` (the rejected value) and ``ctx`` are dropped: an error response never echoes the
+    request back (ADR 005). That also drops the NaN/Infinity inputs FastAPI's default handler
+    failed to serialise.
+    """
     return {
         "type": error["type"],
         "loc": [
