@@ -173,9 +173,97 @@ user, HEALTHCHECK, CORS off.
 - **6 workers**: KNN requests within 3.5% on throughput (the one-null-knn p50 +12.5% is inside
   this layout's ~8% p50 noise plus the C12 effect). `complete` requests are 18% below Phase 4,
   the accepted C12 regression.
-- **Against v0** (Phase 4's [`after.md`](after.md), same machine and method, another session):
-  with one worker, `complete` 337 vs 18.6 req/s (18×) and KNN 103.5 vs 4.8 req/s (22×); with
-  six workers, `complete` 736 vs 19.5 req/s (38×) and KNN 196 vs 4.8 req/s (41×).
+- **Against v0:** see [`final.md`](final.md), measured in one session. (An earlier version of
+  this bullet compared these numbers with `after.md`'s control, which is `1697b6a`, not v0, and
+  came from another session. That comparison was withdrawn in Phase 6.)
 - Memory is reported, not budgeted: within ±11% with one worker; +30 to +42 MiB with six
   workers (5–7 MiB per worker). About 4 MiB per worker was measured at C6 (hashing
   `model.pkl` at startup); the rest was not broken down.
+
+## The 6-worker cost: is it a fixed CPU cost? (Phase 6)
+
+**Explanation tested:** logging and metrics add a fixed CPU cost per request. That cost shows
+only when the CPU is saturated, and it weighs most on the cheapest path (`complete`).
+
+**Prediction if it is right:** the candidate keeps the server's cores as busy as the control
+does (saturated: req/s × CPU ms/req near the cores available), and loses throughput in
+proportion to the extra CPU per request.
+
+**Run.** 7257ac9 (end of Phase 4) against `main` (`7c45362`, end of Phase 5), `complete` only,
+same layout as above (server CPUs 0–11 = 6 physical cores / 12 hardware threads; client CPUs
+12–15, disjoint). To make single stalls matter less than in the 500-request runs (about 0.5 s
+each with six workers), this run used **5,000 requests per run and 5 rounds**. Its numbers are
+therefore not directly comparable with the 500-request rows above. Run on 2026-11-10, 01:42–01:47
+UTC, in the same session as [`final.md`](final.md).
+
+```
+make ab-bench CONTROL=7257ac9 CANDIDATE=main AB_PROFILES=complete AB_REQUESTS=5000 AB_ROUNDS=5 \
+    AB_SERVER_CPUS=0-11 AB_CLIENT_CPUS=12-15 \
+    AB_CONTROL_ARGS="-e WEB_CONCURRENCY=6" AB_CANDIDATE_ARGS="-e WEB_CONCURRENCY=6"
+make ab-bench CONTROL=7257ac9 CANDIDATE=main AB_PROFILES=complete AB_REQUESTS=5000 AB_ROUNDS=5 \
+    AB_SERVER_CPUS=0-11 AB_CLIENT_CPUS=12-15
+```
+
+"Cores busy" is the server container's cgroup CPU time over the measured phase divided by its
+wall time, so it equals req/s × CPU ms/req / 1000. Each worker has an event-loop thread and
+threadpool threads, so the ceiling on the 12 hardware threads is not exactly 6.0; the control
+reaches 6.2–6.5.
+
+### 6 workers, every run
+
+[json](phase6-cost-6-workers-n5000.json)
+
+| Round | Arm | req/s | server CPU ms/req | server cores busy | client cores busy |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | 7257ac9 | 1073.2 | 5.99 | 6.42 | 0.31 |
+| 1 | main | 1030.4 | 6.54 | 6.74 | 0.31 |
+| 2 | main | 1035.4 | 6.49 | 6.71 | 0.31 |
+| 2 | 7257ac9 | 1035.0 | 5.96 | 6.17 | 0.29 |
+| 3 | 7257ac9 | 1070.1 | 5.75 | 6.16 | 0.30 |
+| 3 | main | 846.1 | 5.55 | 4.70 | 0.26 |
+| 4 | main | 927.2 | 5.65 | 5.24 | 0.28 |
+| 4 | 7257ac9 | 1077.2 | 5.99 | 6.45 | 0.31 |
+| 5 | 7257ac9 | 1088.5 | 5.90 | 6.42 | 0.30 |
+| 5 | main | 973.7 | 5.62 | 5.47 | 0.28 |
+| **median** | 7257ac9 | **1073.2** | 5.96 | 6.42 | 0.30 |
+| **median** | main | **973.7** (0.91×) | 5.65 | 5.47 | 0.28 |
+
+### 1 worker, medians of 5 rounds
+
+[json](phase6-cost-1-worker-n5000.json)
+
+| Arm | req/s | server CPU ms/req | server cores busy |
+| --- | ---: | ---: | ---: |
+| 7257ac9 | 347.8 | 3.94 | 1.37 |
+| main | 329.0 (0.95×) | 4.19 (+0.25 ms) | 1.38 |
+
+In every one of the ten 1-worker runs, cores busy was 1.36–1.38 on both arms.
+
+### Verdict: partly confirmed. The fixed cost is real, but it is not most of the 6-worker loss
+
+- **A fixed CPU cost exists.** With one worker both arms keep the same 1.37–1.38 cores busy;
+  main uses 0.25 ms more CPU per complete request (+6%) and serves 5% fewer requests. With six
+  workers, in rounds 1 and 2, main was saturated (6.7 cores busy, above the control's 6.2–6.4),
+  used about 0.5 ms more CPU per request (+9%), and served 4% fewer requests than the round-1
+  control (1030.4 vs 1073.2) and as many as the round-2 control (1035.4 vs 1035.0). Both
+  cases fit the explanation.
+- **But most of the 6-worker loss is not CPU.** In rounds 3–5 main lost 10–21% of throughput
+  while using *less* CPU per request than the control (5.55–5.65 vs 5.75–5.99 ms) and leaving
+  cores idle (4.70–5.47 busy vs 6.16–6.45). A saturated server spending more CPU per request
+  cannot produce that. The workers were waiting on something, not computing. Most of the
+  earlier 500-request runs agree: the slowest candidate runs had idle cores (590 req/s at 3.39
+  cores busy, 673 at 3.90, 695 at 4.51, 703 at 4.24). Not all of them: in the Phase 5 final
+  A/B, round 1, the candidate served 736 req/s at 6.50 cores busy and 8.84 ms per request,
+  a CPU-bound slow run. So both effects occur; in this run the idle-core one is larger.
+- **The client was not the bottleneck.** It ran on CPUs 12–15, disjoint from the server, at
+  0.26–0.31 cores busy, and lowest (0.26–0.28) in the slow runs: it was waiting on the server,
+  not the other way round.
+- **"Weighs most on the cheapest path"**: true for CPU, in the Phase 5 final run (1 worker):
+  +0.6 ms on 4.0 ms for `complete` (+14%) against +1.0 ms on 22.6 ms for `one-null-knn` (+4%).
+  In throughput, the 6-worker loss is also largest on `complete` (0.820 vs 0.966 / 0.975). With
+  one worker the 500-request throughput ratios (0.986 / 0.973 / 0.979) are too close to the
+  noise floor to rank the profiles.
+- **What is still unknown:** what the workers wait on in the slow runs. Ruled out so far: the
+  HEALTHCHECK and the metrics directory's filesystem (tmpfs gave the same loss). Finding it
+  needs profiling under load (for example, off-CPU time per worker), which is out of scope
+  here: nothing was optimized.
