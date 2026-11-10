@@ -111,3 +111,64 @@ breaks exact distance ties, so changing it changes some predictions
 body, `model_version`, `X-Request-ID`, `/health`, `/ready`, `/metrics`, the log line and the
 drift metric. **Breaking change vs v0:** unknown fields are rejected, so a full CSV row (with
 columns the model does not use) now returns 422.
+
+## How missing data is handled
+
+Any field except `zipcode` may be `null` or omitted; both mean "missing". The pipeline
+(`src/services/imputation.py`, [ADR 003](docs/adr/003-imputation-design.md)):
+
+1. **Validate** the request (types, bounds, no unknown fields). `NaN` and `Infinity` are
+   invalid (422), not missing.
+2. **Look up the zipcode's demographics.** A missing or unknown zipcode is a 422: the 26
+   demographic features depend on it and cannot be imputed.
+3. **Nothing missing:** skip imputation. Complete requests take the same path as before.
+4. **Exact sqft fill:** if exactly one of `sqft_living`, `sqft_above`, `sqft_basement` is
+   missing, compute it from `sqft_living = sqft_above + sqft_basement`, which holds on every
+   row of the training data. A negative result means the given values contradict each other;
+   the field is then left to KNN.
+5. **KNN** for whatever is still missing: the notebook's
+   `KNNImputer(n_neighbors=5, weights="distance")` on raw values, fitted once on the model's
+   train split (16,209 rows, 33 features) by `make fit-imputer` and loaded at startup
+   ([ADR 002](docs/adr/002-persisted-imputer-artifact.md)). Never fitted in a request.
+6. **Predict**, and return `imputed_fields`: every field that was missing, however it was
+   filled.
+
+### What it costs in accuracy
+
+From [`docs/imputation_report.md`](docs/imputation_report.md): the model's held-out split,
+5,297 rows (repeat sales that also occur in train removed), each house field masked on its own,
+then all seven. MAPE is against the true sale price; the p90 shift is the 90th percentile of
+the change in predicted price vs the same house with complete data. Values are the served
+pipeline (`knn+sqft_fill` in
+[`evaluation_tables.md`](docs/imputation/evaluation_tables.md)).
+
+| Missing | Filled by | MAPE % | p90 price shift % |
+| --- | --- | ---: | ---: |
+| nothing (complete) | | 17.77 | |
+| `bedrooms` | KNN | 17.87 | 15.15 |
+| `bathrooms` | KNN | 17.91 | 13.50 |
+| `sqft_living` | exact fill | 17.77 | 0.00 |
+| `sqft_lot` | KNN | 19.15 | 22.84 |
+| `floors` | KNN | 17.59 | 6.91 |
+| `sqft_above` | exact fill | 17.77 | 0.00 |
+| `sqft_basement` | exact fill | 17.77 | 0.00 |
+| all seven (zipcode only) | KNN | **35.05** | **61.62** |
+
+- One missing field costs at most 1.4 points of MAPE (`sqft_lot`), but at the 90th percentile a
+  single prediction moves by up to 22.8% (`sqft_lot`). Clients see which fields were guessed in
+  `imputed_fields`.
+- One missing sqft field costs nothing: the fill is exact.
+- **Weakness: the zipcode-only case is poor, and worse than a simple median.** With no house
+  fields, only the demographics are left to measure distance, and they are identical for every
+  house in a zipcode. All same-zipcode donors tie at distance 0, and the imputer takes five of
+  them in index order: effectively five arbitrary houses from the zipcode. MAPE nearly
+  doubles (17.77 → 35.05%). A median imputer does better here (30.63%) but worse on six of the seven
+  single fields; a median fallback for this case was not evaluated as a pipeline and is not
+  implemented (Known gaps).
+- Limits of the evidence: missingness simulated as missing completely at random, one field or
+  all seven; one split, no confidence intervals (differences under about 0.1 point are noise).
+  Pairs of missing fields were tested only for "no 500" (property-based tests), not for
+  accuracy.
+
+Rejected after the evaluation (ADR 003): scaling inside the imputer (zipcode-only MAPE 35.05 →
+43.53%) and rounding imputed values (no measurable effect).
