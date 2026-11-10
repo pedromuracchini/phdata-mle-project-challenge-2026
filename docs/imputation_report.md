@@ -137,9 +137,9 @@ script checks that its k = 1 and k = 7 rows match the tables above exactly. Tabl
 ## Limitations
 
 
-- **Missingness is simulated as MCAR, one feature or all seven.** Real requests may be missing
-  data for reasons that correlate with price. Pairs of missing features beyond the sqft identity
-  were not evaluated separately; the property-based tests only show that they return 200.
+- **Missingness is simulated as MCAR.** The main tables mask one feature or all seven; every
+  other combination is in [More than one missing field](#more-than-one-missing-field). Real
+  requests may be missing data for reasons that correlate with price.
 - **One split, the model's own.** No confidence intervals. On 5,297 rows, differences under about
   0.1 pp MAPE are within noise; for example, `floors` missing gives a *lower* MAPE than complete
   data.
