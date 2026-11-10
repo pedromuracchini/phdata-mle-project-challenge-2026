@@ -1,0 +1,2641 @@
+{
+  "data": {
+    "fit": "model train split",
+    "n_train": 16209,
+    "n_eval": 5297,
+    "n_excluded_copies": 107
+  },
+  "complete_mape_pct": 17.765699319073438,
+  "methods": {
+    "served": "sqft fill, then committed KNN",
+    "median": "SimpleImputer(median)"
+  },
+  "by_k": [
+    {
+      "k": 0,
+      "n_combinations": 1,
+      "served_mape": {
+        "median": 17.765699319073438,
+        "min": 17.765699319073438,
+        "max": 17.765699319073438
+      },
+      "median_mape_median": 17.765699319073438,
+      "best": "(none missing)",
+      "worst": "(none missing)",
+      "served_p90_shift": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "served_beats_median": 0
+    },
+    {
+      "k": 1,
+      "n_combinations": 7,
+      "served_mape": {
+        "median": 17.765699319073438,
+        "min": 17.590414765275707,
+        "max": 19.148423517984394
+      },
+      "median_mape_median": 18.5787034369203,
+      "best": "floors",
+      "worst": "sqft_lot",
+      "served_p90_shift": {
+        "median": 6.908671230269619,
+        "min": 0.0,
+        "max": 22.84472448954098
+      },
+      "served_beats_median": 6
+    },
+    {
+      "k": 2,
+      "n_combinations": 21,
+      "served_mape": {
+        "median": 17.910616232603115,
+        "min": 17.590414765275707,
+        "max": 23.832343043107457
+      },
+      "median_mape_median": 20.169202830512766,
+      "best": "sqft_living+floors",
+      "worst": "sqft_living+sqft_above",
+      "served_p90_shift": {
+        "median": 16.599885491799228,
+        "min": 6.908671230269619,
+        "max": 33.963638867178325
+      },
+      "served_beats_median": 19
+    },
+    {
+      "k": 3,
+      "n_combinations": 35,
+      "served_mape": {
+        "median": 19.170340692658094,
+        "min": 17.81074032391301,
+        "max": 26.400247950468557
+      },
+      "median_mape_median": 21.329407884050564,
+      "best": "bathrooms+sqft_living+floors",
+      "worst": "bathrooms+sqft_living+sqft_above",
+      "served_p90_shift": {
+        "median": 25.70309067079534,
+        "min": 15.835896805835448,
+        "max": 42.20172384431863
+      },
+      "served_beats_median": 32
+    },
+    {
+      "k": 4,
+      "n_combinations": 35,
+      "served_mape": {
+        "median": 19.714126570777637,
+        "min": 18.224432724490864,
+        "max": 28.61080594361358
+      },
+      "median_mape_median": 22.997243352705702,
+      "best": "bedrooms+bathrooms+sqft_living+floors",
+      "worst": "bathrooms+sqft_living+sqft_above+sqft_basement",
+      "served_p90_shift": {
+        "median": 27.913680906981103,
+        "min": 20.06329785120647,
+        "max": 46.77851662158959
+      },
+      "served_beats_median": 32
+    },
+    {
+      "k": 5,
+      "n_combinations": 21,
+      "served_mape": {
+        "median": 23.00764089783156,
+        "min": 19.024465648003495,
+        "max": 29.44293432766207
+      },
+      "median_mape_median": 24.585345366646404,
+      "best": "bedrooms+bathrooms+floors+sqft_above+sqft_basement",
+      "worst": "bathrooms+sqft_living+floors+sqft_above+sqft_basement",
+      "served_p90_shift": {
+        "median": 38.35651952876732,
+        "min": 24.139579000313898,
+        "max": 49.70849203867456
+      },
+      "served_beats_median": 18
+    },
+    {
+      "k": 6,
+      "n_combinations": 7,
+      "served_mape": {
+        "median": 28.835558240993464,
+        "min": 20.04667162256143,
+        "max": 30.746986946349047
+      },
+      "median_mape_median": 28.308990679420816,
+      "best": "bedrooms+bathrooms+sqft_lot+floors+sqft_above+sqft_basement",
+      "worst": "bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_above",
+      "served_p90_shift": {
+        "median": 48.271437216672524,
+        "min": 30.11096877504553,
+        "max": 53.377854619327756
+      },
+      "served_beats_median": 5
+    },
+    {
+      "k": 7,
+      "n_combinations": 1,
+      "served_mape": {
+        "median": 35.04759220752894,
+        "min": 35.04759220752894,
+        "max": 35.04759220752894
+      },
+      "median_mape_median": 30.631396541290908,
+      "best": "bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_above+sqft_basement",
+      "worst": "bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_above+sqft_basement",
+      "served_p90_shift": {
+        "median": 61.617299661960715,
+        "min": 61.617299661960715,
+        "max": 61.617299661960715
+      },
+      "served_beats_median": 0
+    }
+  ],
+  "combinations": {
+    "bedrooms": {
+      "k": 1,
+      "combination": [
+        "bedrooms"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.873390472152114,
+        "shift_median_pct": 0.19369334469667623,
+        "shift_p90_pct": 15.150878294970427
+      },
+      "median": {
+        "price_mape_pct": 18.5787034369203,
+        "shift_median_pct": 0.5039165433346569,
+        "shift_p90_pct": 17.329312579813585
+      }
+    },
+    "bathrooms": {
+      "k": 1,
+      "combination": [
+        "bathrooms"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.910616232603115,
+        "shift_median_pct": 1.2448588549739434,
+        "shift_p90_pct": 13.503058373455247
+      },
+      "median": {
+        "price_mape_pct": 18.811074412329575,
+        "shift_median_pct": 3.230710756366401,
+        "shift_p90_pct": 19.583393161591374
+      }
+    },
+    "sqft_living": {
+      "k": 1,
+      "combination": [
+        "sqft_living"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.765699319073438,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0
+      },
+      "median": {
+        "price_mape_pct": 19.80511785580619,
+        "shift_median_pct": 4.6263345195729535,
+        "shift_p90_pct": 21.05783365618917
+      }
+    },
+    "sqft_lot": {
+      "k": 1,
+      "combination": [
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.148423517984394,
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098
+      },
+      "median": {
+        "price_mape_pct": 18.493808984629606,
+        "shift_median_pct": 4.011030333416897,
+        "shift_p90_pct": 21.723624170573085
+      }
+    },
+    "floors": {
+      "k": 1,
+      "combination": [
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.590414765275707,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.908671230269619
+      },
+      "median": {
+        "price_mape_pct": 17.868653565717395,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 10.0674873792228
+      }
+    },
+    "sqft_above": {
+      "k": 1,
+      "combination": [
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.765699319073438,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0
+      },
+      "median": {
+        "price_mape_pct": 20.07748223234123,
+        "shift_median_pct": 4.453954249552098,
+        "shift_p90_pct": 22.71753561668645
+      }
+    },
+    "sqft_basement": {
+      "k": 1,
+      "combination": [
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.765699319073438,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 0.0
+      },
+      "median": {
+        "price_mape_pct": 17.897421486713597,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 15.848042229685392
+      }
+    },
+    "bedrooms+bathrooms": {
+      "k": 2,
+      "combination": [
+        "bedrooms",
+        "bathrooms"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.106529801275176,
+        "shift_median_pct": 4.080002298916636,
+        "shift_p90_pct": 18.950093895820192
+      },
+      "median": {
+        "price_mape_pct": 19.680953701615522,
+        "shift_median_pct": 6.131479140328698,
+        "shift_p90_pct": 23.760442864490024
+      }
+    },
+    "bedrooms+sqft_living": {
+      "k": 2,
+      "combination": [
+        "bedrooms",
+        "sqft_living"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.873390472152114,
+        "shift_median_pct": 0.19369334469667623,
+        "shift_p90_pct": 15.150878294970427
+      },
+      "median": {
+        "price_mape_pct": 20.349650026078272,
+        "shift_median_pct": 7.265717674970344,
+        "shift_p90_pct": 25.686401061729242
+      }
+    },
+    "bedrooms+sqft_lot": {
+      "k": 2,
+      "combination": [
+        "bedrooms",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.170340692658094,
+        "shift_median_pct": 6.277463904582549,
+        "shift_p90_pct": 25.718324813792304
+      },
+      "median": {
+        "price_mape_pct": 19.234123954969874,
+        "shift_median_pct": 6.986027944111776,
+        "shift_p90_pct": 27.001040019464156
+      }
+    },
+    "bedrooms+floors": {
+      "k": 2,
+      "combination": [
+        "bedrooms",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.831713653077532,
+        "shift_median_pct": 1.9539639555514052,
+        "shift_p90_pct": 16.599885491799228
+      },
+      "median": {
+        "price_mape_pct": 18.93139412449126,
+        "shift_median_pct": 4.231553200163066,
+        "shift_p90_pct": 19.87319205279615
+      }
+    },
+    "bedrooms+sqft_above": {
+      "k": 2,
+      "combination": [
+        "bedrooms",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.873390472152114,
+        "shift_median_pct": 0.19369334469667623,
+        "shift_p90_pct": 15.150878294970427
+      },
+      "median": {
+        "price_mape_pct": 20.60330209358162,
+        "shift_median_pct": 7.484550240329595,
+        "shift_p90_pct": 25.995414524010705
+      }
+    },
+    "bedrooms+sqft_basement": {
+      "k": 2,
+      "combination": [
+        "bedrooms",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.873390472152114,
+        "shift_median_pct": 0.19369334469667623,
+        "shift_p90_pct": 15.150878294970427
+      },
+      "median": {
+        "price_mape_pct": 18.43442003145956,
+        "shift_median_pct": 4.231553200163066,
+        "shift_p90_pct": 21.66477220063206
+      }
+    },
+    "bathrooms+sqft_living": {
+      "k": 2,
+      "combination": [
+        "bathrooms",
+        "sqft_living"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.910616232603115,
+        "shift_median_pct": 1.2448588549739434,
+        "shift_p90_pct": 13.503058373455247
+      },
+      "median": {
+        "price_mape_pct": 21.63578782701449,
+        "shift_median_pct": 8.134978940150846,
+        "shift_p90_pct": 30.458133400100746
+      }
+    },
+    "bathrooms+sqft_lot": {
+      "k": 2,
+      "combination": [
+        "bathrooms",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.38257508330453,
+        "shift_median_pct": 6.124357176250585,
+        "shift_p90_pct": 25.80885793631684
+      },
+      "median": {
+        "price_mape_pct": 19.70413640973818,
+        "shift_median_pct": 7.497056030389358,
+        "shift_p90_pct": 27.909392104486976
+      }
+    },
+    "bathrooms+floors": {
+      "k": 2,
+      "combination": [
+        "bathrooms",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.81074032391301,
+        "shift_median_pct": 2.236171047469596,
+        "shift_p90_pct": 15.835896805835448
+      },
+      "median": {
+        "price_mape_pct": 19.026691881720964,
+        "shift_median_pct": 4.878048780487805,
+        "shift_p90_pct": 21.9834953217252
+      }
+    },
+    "bathrooms+sqft_above": {
+      "k": 2,
+      "combination": [
+        "bathrooms",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.910616232603115,
+        "shift_median_pct": 1.2448588549739434,
+        "shift_p90_pct": 13.503058373455247
+      },
+      "median": {
+        "price_mape_pct": 21.773322200569382,
+        "shift_median_pct": 8.71176872014393,
+        "shift_p90_pct": 30.1368788339013
+      }
+    },
+    "bathrooms+sqft_basement": {
+      "k": 2,
+      "combination": [
+        "bathrooms",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.910616232603115,
+        "shift_median_pct": 1.2448588549739434,
+        "shift_p90_pct": 13.503058373455247
+      },
+      "median": {
+        "price_mape_pct": 18.881587656097512,
+        "shift_median_pct": 5.679791029561672,
+        "shift_p90_pct": 23.327386262265833
+      }
+    },
+    "sqft_living+sqft_lot": {
+      "k": 2,
+      "combination": [
+        "sqft_living",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.148423517984394,
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098
+      },
+      "median": {
+        "price_mape_pct": 20.76778258347649,
+        "shift_median_pct": 8.086557841812665,
+        "shift_p90_pct": 30.407225826186995
+      }
+    },
+    "sqft_living+floors": {
+      "k": 2,
+      "combination": [
+        "sqft_living",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.590414765275707,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.908671230269619
+      },
+      "median": {
+        "price_mape_pct": 20.169202830512766,
+        "shift_median_pct": 5.899177690382553,
+        "shift_p90_pct": 23.830285889224076
+      }
+    },
+    "sqft_living+sqft_above": {
+      "k": 2,
+      "combination": [
+        "sqft_living",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 23.832343043107457,
+        "shift_median_pct": 7.496001163297949,
+        "shift_p90_pct": 33.963638867178325
+      },
+      "median": {
+        "price_mape_pct": 23.860354760563222,
+        "shift_median_pct": 9.264094955489615,
+        "shift_p90_pct": 37.498719074658744
+      }
+    },
+    "sqft_living+sqft_basement": {
+      "k": 2,
+      "combination": [
+        "sqft_living",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.43685752131611,
+        "shift_median_pct": 3.969465648854962,
+        "shift_p90_pct": 22.084413654897794
+      },
+      "median": {
+        "price_mape_pct": 20.218521737902385,
+        "shift_median_pct": 7.317392692705534,
+        "shift_p90_pct": 25.892733446519532
+      }
+    },
+    "sqft_lot+floors": {
+      "k": 2,
+      "combination": [
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.149586722356,
+        "shift_median_pct": 4.964147932292624,
+        "shift_p90_pct": 24.618068343706796
+      },
+      "median": {
+        "price_mape_pct": 18.756750273372038,
+        "shift_median_pct": 5.281833030852999,
+        "shift_p90_pct": 23.995398801095693
+      }
+    },
+    "sqft_lot+sqft_above": {
+      "k": 2,
+      "combination": [
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.148423517984394,
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098
+      },
+      "median": {
+        "price_mape_pct": 21.148594096300386,
+        "shift_median_pct": 8.662508662508662,
+        "shift_p90_pct": 31.203831830549678
+      }
+    },
+    "sqft_lot+sqft_basement": {
+      "k": 2,
+      "combination": [
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.148423517984394,
+        "shift_median_pct": 3.8365639829486042,
+        "shift_p90_pct": 22.84472448954098
+      },
+      "median": {
+        "price_mape_pct": 18.689703379741868,
+        "shift_median_pct": 6.703742672478581,
+        "shift_p90_pct": 25.813367132141572
+      }
+    },
+    "floors+sqft_above": {
+      "k": 2,
+      "combination": [
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.590414765275707,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.908671230269619
+      },
+      "median": {
+        "price_mape_pct": 20.6427849658308,
+        "shift_median_pct": 6.484424666242848,
+        "shift_p90_pct": 25.62139209291303
+      }
+    },
+    "floors+sqft_basement": {
+      "k": 2,
+      "combination": [
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.590414765275707,
+        "shift_median_pct": 0.0,
+        "shift_p90_pct": 6.908671230269619
+      },
+      "median": {
+        "price_mape_pct": 17.94329563925874,
+        "shift_median_pct": 2.4001229256299936,
+        "shift_p90_pct": 18.380363409310146
+      }
+    },
+    "sqft_above+sqft_basement": {
+      "k": 2,
+      "combination": [
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.366432335801857,
+        "shift_median_pct": 3.0730679948961552,
+        "shift_p90_pct": 16.721750759130792
+      },
+      "median": {
+        "price_mape_pct": 20.284654822797958,
+        "shift_median_pct": 7.381733021077283,
+        "shift_p90_pct": 26.330079179038258
+      }
+    },
+    "bedrooms+bathrooms+sqft_living": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.106529801275176,
+        "shift_median_pct": 4.080002298916636,
+        "shift_p90_pct": 18.950093895820192
+      },
+      "median": {
+        "price_mape_pct": 22.150724632684106,
+        "shift_median_pct": 9.986873675858783,
+        "shift_p90_pct": 32.3436407329404
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.27387554445042,
+        "shift_median_pct": 7.61986301369863,
+        "shift_p90_pct": 27.484552110060807
+      },
+      "median": {
+        "price_mape_pct": 20.51520631684614,
+        "shift_median_pct": 9.526453547781845,
+        "shift_p90_pct": 31.46115409587748
+      }
+    },
+    "bedrooms+bathrooms+floors": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.224432724490864,
+        "shift_median_pct": 4.787336953310632,
+        "shift_p90_pct": 20.06329785120647
+      },
+      "median": {
+        "price_mape_pct": 19.84282920907437,
+        "shift_median_pct": 7.180181923746855,
+        "shift_p90_pct": 25.776189735147238
+      }
+    },
+    "bedrooms+bathrooms+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.106529801275176,
+        "shift_median_pct": 4.080002298916636,
+        "shift_p90_pct": 18.950093895820192
+      },
+      "median": {
+        "price_mape_pct": 22.365141715676096,
+        "shift_median_pct": 10.361257727300734,
+        "shift_p90_pct": 32.01996459991554
+      }
+    },
+    "bedrooms+bathrooms+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.106529801275176,
+        "shift_median_pct": 4.080002298916636,
+        "shift_p90_pct": 18.950093895820192
+      },
+      "median": {
+        "price_mape_pct": 19.331344571438386,
+        "shift_median_pct": 7.757428207823826,
+        "shift_p90_pct": 25.15205336220821
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.170340692658094,
+        "shift_median_pct": 6.277463904582549,
+        "shift_p90_pct": 25.718324813792304
+      },
+      "median": {
+        "price_mape_pct": 21.4062370174951,
+        "shift_median_pct": 10.341261633919338,
+        "shift_p90_pct": 32.877425327811565
+      }
+    },
+    "bedrooms+sqft_living+floors": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.831713653077532,
+        "shift_median_pct": 1.9539639555514052,
+        "shift_p90_pct": 16.599885491799228
+      },
+      "median": {
+        "price_mape_pct": 21.005761866279315,
+        "shift_median_pct": 8.324822695035461,
+        "shift_p90_pct": 27.55557053280684
+      }
+    },
+    "bedrooms+sqft_living+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 24.29132915095199,
+        "shift_median_pct": 9.90990990990991,
+        "shift_p90_pct": 36.724155626465304
+      },
+      "median": {
+        "price_mape_pct": 24.620753638005997,
+        "shift_median_pct": 12.344983089064261,
+        "shift_p90_pct": 39.19034073307813
+      }
+    },
+    "bedrooms+sqft_living+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.55783994236522,
+        "shift_median_pct": 6.412698412698413,
+        "shift_p90_pct": 25.70309067079534
+      },
+      "median": {
+        "price_mape_pct": 20.646817546568947,
+        "shift_median_pct": 8.916083916083917,
+        "shift_p90_pct": 28.143013076777347
+      }
+    },
+    "bedrooms+sqft_lot+floors": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.251524095362207,
+        "shift_median_pct": 6.916494915620689,
+        "shift_p90_pct": 26.93544653607637
+      },
+      "median": {
+        "price_mape_pct": 19.55284634482775,
+        "shift_median_pct": 7.842356687898089,
+        "shift_p90_pct": 27.798532711804704
+      }
+    },
+    "bedrooms+sqft_lot+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.170340692658094,
+        "shift_median_pct": 6.277463904582549,
+        "shift_p90_pct": 25.718324813792304
+      },
+      "median": {
+        "price_mape_pct": 21.983867271273887,
+        "shift_median_pct": 10.785159620362382,
+        "shift_p90_pct": 34.69821147428186
+      }
+    },
+    "bedrooms+sqft_lot+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.170340692658094,
+        "shift_median_pct": 6.277463904582549,
+        "shift_p90_pct": 25.718324813792304
+      },
+      "median": {
+        "price_mape_pct": 19.21088647439369,
+        "shift_median_pct": 8.73421052631579,
+        "shift_p90_pct": 28.972425613490703
+      }
+    },
+    "bedrooms+floors+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.831713653077532,
+        "shift_median_pct": 1.9539639555514052,
+        "shift_p90_pct": 16.599885491799228
+      },
+      "median": {
+        "price_mape_pct": 21.339868631559938,
+        "shift_median_pct": 8.997591337820499,
+        "shift_p90_pct": 28.072449656781252
+      }
+    },
+    "bedrooms+floors+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.831713653077532,
+        "shift_median_pct": 1.9539639555514052,
+        "shift_p90_pct": 16.599885491799228
+      },
+      "median": {
+        "price_mape_pct": 18.674234277518106,
+        "shift_median_pct": 6.137792764057232,
+        "shift_p90_pct": 22.906613298375575
+      }
+    },
+    "bedrooms+sqft_above+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bedrooms",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.285873703821114,
+        "shift_median_pct": 5.050469892098851,
+        "shift_p90_pct": 20.681512467333715
+      },
+      "median": {
+        "price_mape_pct": 20.569658936766043,
+        "shift_median_pct": 8.870148792441167,
+        "shift_p90_pct": 27.586991459763077
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.38257508330453,
+        "shift_median_pct": 6.124357176250585,
+        "shift_p90_pct": 25.80885793631684
+      },
+      "median": {
+        "price_mape_pct": 22.882445674916706,
+        "shift_median_pct": 11.48590021691974,
+        "shift_p90_pct": 36.28296302051892
+      }
+    },
+    "bathrooms+sqft_living+floors": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.81074032391301,
+        "shift_median_pct": 2.236171047469596,
+        "shift_p90_pct": 15.835896805835448
+      },
+      "median": {
+        "price_mape_pct": 22.193491380193663,
+        "shift_median_pct": 9.471683770429493,
+        "shift_p90_pct": 31.894251845136974
+      }
+    },
+    "bathrooms+sqft_living+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 26.400247950468557,
+        "shift_median_pct": 10.748449185460027,
+        "shift_p90_pct": 42.20172384431863
+      },
+      "median": {
+        "price_mape_pct": 26.61403112166003,
+        "shift_median_pct": 13.811255076387546,
+        "shift_p90_pct": 43.7870068030836
+      }
+    },
+    "bathrooms+sqft_living+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 20.53752931790664,
+        "shift_median_pct": 6.8181818181818175,
+        "shift_p90_pct": 27.200123167036054
+      },
+      "median": {
+        "price_mape_pct": 21.899344898674716,
+        "shift_median_pct": 9.897946637157261,
+        "shift_p90_pct": 32.022060237559934
+      }
+    },
+    "bathrooms+sqft_lot+floors": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.458547339569186,
+        "shift_median_pct": 6.71971706454465,
+        "shift_p90_pct": 27.071689591999437
+      },
+      "median": {
+        "price_mape_pct": 20.10909739566639,
+        "shift_median_pct": 8.504551365409622,
+        "shift_p90_pct": 29.115435979740354
+      }
+    },
+    "bathrooms+sqft_lot+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.38257508330453,
+        "shift_median_pct": 6.124357176250585,
+        "shift_p90_pct": 25.80885793631684
+      },
+      "median": {
+        "price_mape_pct": 23.004760773557724,
+        "shift_median_pct": 12.198231658305385,
+        "shift_p90_pct": 36.170524200990066
+      }
+    },
+    "bathrooms+sqft_lot+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.38257508330453,
+        "shift_median_pct": 6.124357176250585,
+        "shift_p90_pct": 25.80885793631684
+      },
+      "median": {
+        "price_mape_pct": 19.87449648756606,
+        "shift_median_pct": 9.360398755121983,
+        "shift_p90_pct": 29.638756103465347
+      }
+    },
+    "bathrooms+floors+sqft_above": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.81074032391301,
+        "shift_median_pct": 2.236171047469596,
+        "shift_p90_pct": 15.835896805835448
+      },
+      "median": {
+        "price_mape_pct": 22.39672155043873,
+        "shift_median_pct": 10.31578947368421,
+        "shift_p90_pct": 32.56024788621853
+      }
+    },
+    "bathrooms+floors+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 17.81074032391301,
+        "shift_median_pct": 2.236171047469596,
+        "shift_p90_pct": 15.835896805835448
+      },
+      "median": {
+        "price_mape_pct": 18.929614740765636,
+        "shift_median_pct": 6.6543825118304785,
+        "shift_p90_pct": 24.282472154022123
+      }
+    },
+    "bathrooms+sqft_above+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "bathrooms",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.710509804555965,
+        "shift_median_pct": 4.966139954853273,
+        "shift_p90_pct": 19.856040278056796
+      },
+      "median": {
+        "price_mape_pct": 21.86570885860916,
+        "shift_median_pct": 10.647707392489524,
+        "shift_p90_pct": 31.806743379578624
+      }
+    },
+    "sqft_living+sqft_lot+floors": {
+      "k": 3,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.149586722356,
+        "shift_median_pct": 4.964147932292624,
+        "shift_p90_pct": 24.618068343706796
+      },
+      "median": {
+        "price_mape_pct": 21.21933672467925,
+        "shift_median_pct": 9.244184291324348,
+        "shift_p90_pct": 32.79673310311628
+      }
+    },
+    "sqft_living+sqft_lot+sqft_above": {
+      "k": 3,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 23.908129624012155,
+        "shift_median_pct": 9.207934285678887,
+        "shift_p90_pct": 37.709822572291834
+      },
+      "median": {
+        "price_mape_pct": 25.85383734836594,
+        "shift_median_pct": 13.758551973295141,
+        "shift_p90_pct": 45.8597463158466
+      }
+    },
+    "sqft_living+sqft_lot+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 21.008159160033948,
+        "shift_median_pct": 7.817164179104477,
+        "shift_p90_pct": 32.0677778957512
+      },
+      "median": {
+        "price_mape_pct": 21.27160539851341,
+        "shift_median_pct": 10.489177746087453,
+        "shift_p90_pct": 33.16447923862154
+      }
+    },
+    "sqft_living+floors+sqft_above": {
+      "k": 3,
+      "combination": [
+        "sqft_living",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 24.670654203477994,
+        "shift_median_pct": 8.731299179919647,
+        "shift_p90_pct": 36.974652535818535
+      },
+      "median": {
+        "price_mape_pct": 24.666717874866915,
+        "shift_median_pct": 11.328620627152437,
+        "shift_p90_pct": 39.02650001367679
+      }
+    },
+    "sqft_living+floors+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "sqft_living",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.39461933973325,
+        "shift_median_pct": 4.819563152896486,
+        "shift_p90_pct": 23.18536442369836
+      },
+      "median": {
+        "price_mape_pct": 20.37537019477962,
+        "shift_median_pct": 7.989552849365933,
+        "shift_p90_pct": 27.19883932603245
+      }
+    },
+    "sqft_living+sqft_above+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "sqft_living",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 25.220395112756915,
+        "shift_median_pct": 10.993939393939394,
+        "shift_p90_pct": 39.10350928929519
+      },
+      "median": {
+        "price_mape_pct": 24.244464607777406,
+        "shift_median_pct": 11.822226153097779,
+        "shift_p90_pct": 39.26979195268217
+      }
+    },
+    "sqft_lot+floors+sqft_above": {
+      "k": 3,
+      "combination": [
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.149586722356,
+        "shift_median_pct": 4.964147932292624,
+        "shift_p90_pct": 24.618068343706796
+      },
+      "median": {
+        "price_mape_pct": 21.833146611776545,
+        "shift_median_pct": 10.335668417980152,
+        "shift_p90_pct": 33.33916436045151
+      }
+    },
+    "sqft_lot+floors+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.149586722356,
+        "shift_median_pct": 4.964147932292624,
+        "shift_p90_pct": 24.618068343706796
+      },
+      "median": {
+        "price_mape_pct": 18.823426955085683,
+        "shift_median_pct": 7.614539306846998,
+        "shift_p90_pct": 27.030099363085746
+      }
+    },
+    "sqft_lot+sqft_above+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.61856351347862,
+        "shift_median_pct": 6.661515536177494,
+        "shift_p90_pct": 26.747604164786864
+      },
+      "median": {
+        "price_mape_pct": 21.329407884050564,
+        "shift_median_pct": 10.92387327569853,
+        "shift_p90_pct": 33.04022869982071
+      }
+    },
+    "floors+sqft_above+sqft_basement": {
+      "k": 3,
+      "combination": [
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.623847700605808,
+        "shift_median_pct": 3.9851918371835167,
+        "shift_p90_pct": 19.097456359055222
+      },
+      "median": {
+        "price_mape_pct": 20.700985176834532,
+        "shift_median_pct": 8.831246273106737,
+        "shift_p90_pct": 28.7337678900447
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.27387554445042,
+        "shift_median_pct": 7.61986301369863,
+        "shift_p90_pct": 27.484552110060807
+      },
+      "median": {
+        "price_mape_pct": 23.611034870725543,
+        "shift_median_pct": 13.256671729225427,
+        "shift_p90_pct": 38.16682106129166
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+floors": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.224432724490864,
+        "shift_median_pct": 4.787336953310632,
+        "shift_p90_pct": 20.06329785120647
+      },
+      "median": {
+        "price_mape_pct": 23.033481005020935,
+        "shift_median_pct": 11.1074122236671,
+        "shift_p90_pct": 34.91506109775369
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 27.146139376889018,
+        "shift_median_pct": 13.273222897882157,
+        "shift_p90_pct": 44.15838695868787
+      },
+      "median": {
+        "price_mape_pct": 27.459026776809687,
+        "shift_median_pct": 15.980443654289061,
+        "shift_p90_pct": 44.620052155278714
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 20.882230043179206,
+        "shift_median_pct": 8.488721020878124,
+        "shift_p90_pct": 30.20214131686119
+      },
+      "median": {
+        "price_mape_pct": 22.274683964613967,
+        "shift_median_pct": 11.152073732718893,
+        "shift_p90_pct": 33.33834566912478
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+floors": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.456224456451363,
+        "shift_median_pct": 8.169654037422625,
+        "shift_p90_pct": 28.912395520068994
+      },
+      "median": {
+        "price_mape_pct": 20.953742499167387,
+        "shift_median_pct": 10.181759076002256,
+        "shift_p90_pct": 32.160046379986134
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.27387554445042,
+        "shift_median_pct": 7.61986301369863,
+        "shift_p90_pct": 27.484552110060807
+      },
+      "median": {
+        "price_mape_pct": 23.742263101628087,
+        "shift_median_pct": 13.496999895950148,
+        "shift_p90_pct": 38.26829632781455
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.27387554445042,
+        "shift_median_pct": 7.61986301369863,
+        "shift_p90_pct": 27.484552110060807
+      },
+      "median": {
+        "price_mape_pct": 20.345569618511668,
+        "shift_median_pct": 10.401854714064914,
+        "shift_p90_pct": 31.81637435077548
+      }
+    },
+    "bedrooms+bathrooms+floors+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.224432724490864,
+        "shift_median_pct": 4.787336953310632,
+        "shift_p90_pct": 20.06329785120647
+      },
+      "median": {
+        "price_mape_pct": 23.156406351559163,
+        "shift_median_pct": 12.03823911247492,
+        "shift_p90_pct": 33.969874877975506
+      }
+    },
+    "bedrooms+bathrooms+floors+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 18.224432724490864,
+        "shift_median_pct": 4.787336953310632,
+        "shift_p90_pct": 20.06329785120647
+      },
+      "median": {
+        "price_mape_pct": 19.410917226006504,
+        "shift_median_pct": 8.210921804472044,
+        "shift_p90_pct": 26.567154008826478
+      }
+    },
+    "bedrooms+bathrooms+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.65349507524213,
+        "shift_median_pct": 6.461388074291301,
+        "shift_p90_pct": 22.843265644511277
+      },
+      "median": {
+        "price_mape_pct": 22.112315132398464,
+        "shift_median_pct": 11.454367453497225,
+        "shift_p90_pct": 32.56154319275523
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+floors": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.251524095362207,
+        "shift_median_pct": 6.916494915620689,
+        "shift_p90_pct": 26.93544653607637
+      },
+      "median": {
+        "price_mape_pct": 22.059643509809,
+        "shift_median_pct": 11.051156286061307,
+        "shift_p90_pct": 34.44300191867198
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 24.337585677505814,
+        "shift_median_pct": 11.46148931346483,
+        "shift_p90_pct": 40.378538127795835
+      },
+      "median": {
+        "price_mape_pct": 26.1344942505963,
+        "shift_median_pct": 15.871000507872015,
+        "shift_p90_pct": 45.34196254048506
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 21.471403594383844,
+        "shift_median_pct": 9.697683549273656,
+        "shift_p90_pct": 34.06630078054707
+      },
+      "median": {
+        "price_mape_pct": 21.817418087864336,
+        "shift_median_pct": 11.952992113808566,
+        "shift_p90_pct": 34.44089539652995
+      }
+    },
+    "bedrooms+sqft_living+floors+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 25.3062570169639,
+        "shift_median_pct": 11.051941668032116,
+        "shift_p90_pct": 39.36058138695992
+      },
+      "median": {
+        "price_mape_pct": 25.66357267680404,
+        "shift_median_pct": 13.8675139419815,
+        "shift_p90_pct": 41.56701807613929
+      }
+    },
+    "bedrooms+sqft_living+floors+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.51956120143386,
+        "shift_median_pct": 6.867101040516863,
+        "shift_p90_pct": 25.78730775817481
+      },
+      "median": {
+        "price_mape_pct": 21.169243722485287,
+        "shift_median_pct": 9.625029854310963,
+        "shift_p90_pct": 29.840446844752798
+      }
+    },
+    "bedrooms+sqft_living+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 25.728019863729468,
+        "shift_median_pct": 12.820580474934037,
+        "shift_p90_pct": 41.15497797324995
+      },
+      "median": {
+        "price_mape_pct": 24.93969258401736,
+        "shift_median_pct": 13.459276683328433,
+        "shift_p90_pct": 40.51959014874024
+      }
+    },
+    "bedrooms+sqft_lot+floors+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.251524095362207,
+        "shift_median_pct": 6.916494915620689,
+        "shift_p90_pct": 26.93544653607637
+      },
+      "median": {
+        "price_mape_pct": 22.596066913007085,
+        "shift_median_pct": 12.150543448872545,
+        "shift_p90_pct": 35.967160696938265
+      }
+    },
+    "bedrooms+sqft_lot+floors+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.251524095362207,
+        "shift_median_pct": 6.916494915620689,
+        "shift_p90_pct": 26.93544653607637
+      },
+      "median": {
+        "price_mape_pct": 19.387620759350938,
+        "shift_median_pct": 9.41569541958062,
+        "shift_p90_pct": 29.707709817383552
+      }
+    },
+    "bedrooms+sqft_lot+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.714126570777637,
+        "shift_median_pct": 7.902763656530179,
+        "shift_p90_pct": 28.10700398154188
+      },
+      "median": {
+        "price_mape_pct": 21.915621755547754,
+        "shift_median_pct": 12.191304347826087,
+        "shift_p90_pct": 35.6690656092927
+      }
+    },
+    "bedrooms+floors+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bedrooms",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.598549858206898,
+        "shift_median_pct": 5.562662033778727,
+        "shift_p90_pct": 22.166188024031168
+      },
+      "median": {
+        "price_mape_pct": 21.301424951534724,
+        "shift_median_pct": 10.19838463542636,
+        "shift_p90_pct": 30.168884504198605
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+floors": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.458547339569186,
+        "shift_median_pct": 6.71971706454465,
+        "shift_p90_pct": 27.071689591999437
+      },
+      "median": {
+        "price_mape_pct": 23.56594148974366,
+        "shift_median_pct": 12.737278179682187,
+        "shift_p90_pct": 38.07236487840057
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 26.390129399463635,
+        "shift_median_pct": 12.344898443056982,
+        "shift_p90_pct": 43.21267464985433
+      },
+      "median": {
+        "price_mape_pct": 28.658277788946485,
+        "shift_median_pct": 18.024613013621014,
+        "shift_p90_pct": 50.378543070104634
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 22.353069785509298,
+        "shift_median_pct": 10.258662762323084,
+        "shift_p90_pct": 36.56653325168402
+      },
+      "median": {
+        "price_mape_pct": 23.30933864109242,
+        "shift_median_pct": 13.085004775549189,
+        "shift_p90_pct": 37.46500842707415
+      }
+    },
+    "bathrooms+sqft_living+floors+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 27.363160461640778,
+        "shift_median_pct": 12.023714131023274,
+        "shift_p90_pct": 44.68215472082828
+      },
+      "median": {
+        "price_mape_pct": 27.434843563808855,
+        "shift_median_pct": 15.774719673802243,
+        "shift_p90_pct": 45.52949545302652
+      }
+    },
+    "bathrooms+sqft_living+floors+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 20.485674278058795,
+        "shift_median_pct": 7.352494367557133,
+        "shift_p90_pct": 27.913680906981103
+      },
+      "median": {
+        "price_mape_pct": 22.306100548553545,
+        "shift_median_pct": 11.02635505777673,
+        "shift_p90_pct": 33.629323428739724
+      }
+    },
+    "bathrooms+sqft_living+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 28.61080594361358,
+        "shift_median_pct": 14.387432796422406,
+        "shift_p90_pct": 46.77851662158959
+      },
+      "median": {
+        "price_mape_pct": 26.835777336358113,
+        "shift_median_pct": 15.40375480660484,
+        "shift_p90_pct": 44.584701262424744
+      }
+    },
+    "bathrooms+sqft_lot+floors+sqft_above": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.458547339569186,
+        "shift_median_pct": 6.71971706454465,
+        "shift_p90_pct": 27.071689591999437
+      },
+      "median": {
+        "price_mape_pct": 23.768160589975565,
+        "shift_median_pct": 13.921673650713634,
+        "shift_p90_pct": 37.66426493585093
+      }
+    },
+    "bathrooms+sqft_lot+floors+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.458547339569186,
+        "shift_median_pct": 6.71971706454465,
+        "shift_p90_pct": 27.071689591999437
+      },
+      "median": {
+        "price_mape_pct": 20.08749284358271,
+        "shift_median_pct": 9.767269126021292,
+        "shift_p90_pct": 30.392793295781317
+      }
+    },
+    "bathrooms+sqft_lot+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.735814092120304,
+        "shift_median_pct": 7.901235078119672,
+        "shift_p90_pct": 28.900926791810193
+      },
+      "median": {
+        "price_mape_pct": 22.997243352705702,
+        "shift_median_pct": 13.627238416445836,
+        "shift_p90_pct": 36.69246778202794
+      }
+    },
+    "bathrooms+floors+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "bathrooms",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 18.932687636626007,
+        "shift_median_pct": 5.813385442110405,
+        "shift_p90_pct": 22.055958341144883
+      },
+      "median": {
+        "price_mape_pct": 22.313582827862568,
+        "shift_median_pct": 11.903774367482372,
+        "shift_p90_pct": 33.08938471461055
+      }
+    },
+    "sqft_living+sqft_lot+floors+sqft_above": {
+      "k": 4,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 24.64596881575672,
+        "shift_median_pct": 10.496836560258647,
+        "shift_p90_pct": 39.59146789908565
+      },
+      "median": {
+        "price_mape_pct": 26.69554838990648,
+        "shift_median_pct": 15.148779806268195,
+        "shift_p90_pct": 47.53037592010445
+      }
+    },
+    "sqft_living+sqft_lot+floors+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 20.96182814757424,
+        "shift_median_pct": 8.844225050786578,
+        "shift_p90_pct": 32.55162282153671
+      },
+      "median": {
+        "price_mape_pct": 21.58303883689509,
+        "shift_median_pct": 11.18508655126498,
+        "shift_p90_pct": 34.72047833679676
+      }
+    },
+    "sqft_living+sqft_lot+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 23.785792027203716,
+        "shift_median_pct": 10.46860016467481,
+        "shift_p90_pct": 36.90411205854592
+      },
+      "median": {
+        "price_mape_pct": 26.27817511157526,
+        "shift_median_pct": 15.917946175210304,
+        "shift_p90_pct": 47.1720782177878
+      }
+    },
+    "sqft_living+floors+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "sqft_living",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 26.252366509038012,
+        "shift_median_pct": 12.134401480266616,
+        "shift_p90_pct": 41.203036490958205
+      },
+      "median": {
+        "price_mape_pct": 24.862177872750234,
+        "shift_median_pct": 13.162001759299075,
+        "shift_p90_pct": 40.80865225585282
+      }
+    },
+    "sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 4,
+      "combination": [
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.77481345521235,
+        "shift_median_pct": 7.821391243757985,
+        "shift_p90_pct": 27.627272187263642
+      },
+      "median": {
+        "price_mape_pct": 21.811895050252904,
+        "shift_median_pct": 12.02623499860452,
+        "shift_p90_pct": 35.153117393332835
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+floors": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.456224456451363,
+        "shift_median_pct": 8.169654037422625,
+        "shift_p90_pct": 28.912395520068994
+      },
+      "median": {
+        "price_mape_pct": 24.325726348782542,
+        "shift_median_pct": 14.235118364880512,
+        "shift_p90_pct": 39.907811016144365
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+sqft_above": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 27.686788290334857,
+        "shift_median_pct": 14.980407917210892,
+        "shift_p90_pct": 47.12804733713278
+      },
+      "median": {
+        "price_mape_pct": 29.15621287450631,
+        "shift_median_pct": 19.2776106958878,
+        "shift_p90_pct": 50.57186665727693
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 23.00764089783156,
+        "shift_median_pct": 11.815489911832511,
+        "shift_p90_pct": 38.35651952876732
+      },
+      "median": {
+        "price_mape_pct": 23.85119366337016,
+        "shift_median_pct": 14.085649630673327,
+        "shift_p90_pct": 38.86813501377548
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+floors+sqft_above": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 28.11376006278416,
+        "shift_median_pct": 14.249007241298761,
+        "shift_p90_pct": 45.54941733476843
+      },
+      "median": {
+        "price_mape_pct": 28.410992934130814,
+        "shift_median_pct": 17.251146619322387,
+        "shift_p90_pct": 47.06889059966732
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+floors+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 20.797210028194478,
+        "shift_median_pct": 8.73215785054576,
+        "shift_p90_pct": 30.290845706993295
+      },
+      "median": {
+        "price_mape_pct": 22.988515678505248,
+        "shift_median_pct": 12.060414080447467,
+        "shift_p90_pct": 35.218027362798644
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 29.43925540576077,
+        "shift_median_pct": 16.493361062230044,
+        "shift_p90_pct": 49.05148862699177
+      },
+      "median": {
+        "price_mape_pct": 27.484129300054388,
+        "shift_median_pct": 16.98528256429058,
+        "shift_p90_pct": 45.42234627954077
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+floors+sqft_above": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.456224456451363,
+        "shift_median_pct": 8.169654037422625,
+        "shift_p90_pct": 28.912395520068994
+      },
+      "median": {
+        "price_mape_pct": 24.585345366646404,
+        "shift_median_pct": 14.94640283055956,
+        "shift_p90_pct": 40.208225081077295
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+floors+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": false,
+      "served": {
+        "price_mape_pct": 19.456224456451363,
+        "shift_median_pct": 8.169654037422625,
+        "shift_p90_pct": 28.912395520068994
+      },
+      "median": {
+        "price_mape_pct": 20.604772856713808,
+        "shift_median_pct": 10.669189322584625,
+        "shift_p90_pct": 32.3585426218793
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.894031090595522,
+        "shift_median_pct": 8.922908693275014,
+        "shift_p90_pct": 30.34455994793796
+      },
+      "median": {
+        "price_mape_pct": 23.455978135274474,
+        "shift_median_pct": 14.188311688311689,
+        "shift_p90_pct": 38.77753667078318
+      }
+    },
+    "bedrooms+bathrooms+floors+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.024465648003495,
+        "shift_median_pct": 7.182883341823739,
+        "shift_p90_pct": 24.139579000313898
+      },
+      "median": {
+        "price_mape_pct": 22.69186043698163,
+        "shift_median_pct": 12.56937612795923,
+        "shift_p90_pct": 34.00124092776202
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+floors+sqft_above": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 25.581721207931164,
+        "shift_median_pct": 12.614678899082568,
+        "shift_p90_pct": 43.73600068579911
+      },
+      "median": {
+        "price_mape_pct": 27.287897114477254,
+        "shift_median_pct": 17.329486915310117,
+        "shift_p90_pct": 47.80186548380118
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+floors+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 21.607771116948122,
+        "shift_median_pct": 10.529344073647872,
+        "shift_p90_pct": 34.566730295102346
+      },
+      "median": {
+        "price_mape_pct": 22.42785352748372,
+        "shift_median_pct": 12.765569398240615,
+        "shift_p90_pct": 36.153811716161556
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 24.82867628995261,
+        "shift_median_pct": 12.765121759622938,
+        "shift_p90_pct": 41.04468985850026
+      },
+      "median": {
+        "price_mape_pct": 26.708626139439428,
+        "shift_median_pct": 17.21575427297498,
+        "shift_p90_pct": 46.28154356716504
+      }
+    },
+    "bedrooms+sqft_living+floors+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 26.650374415782927,
+        "shift_median_pct": 13.83337854808544,
+        "shift_p90_pct": 43.493449026176215
+      },
+      "median": {
+        "price_mape_pct": 25.920179575868694,
+        "shift_median_pct": 14.781539902256299,
+        "shift_p90_pct": 43.13524067252505
+      }
+    },
+    "bedrooms+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bedrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.839190809763117,
+        "shift_median_pct": 8.86831813919068,
+        "shift_p90_pct": 29.70131437724624
+      },
+      "median": {
+        "price_mape_pct": 22.404003028978924,
+        "shift_median_pct": 13.120247884638303,
+        "shift_p90_pct": 36.65803670865937
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+floors+sqft_above": {
+      "k": 5,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 28.934270415974446,
+        "shift_median_pct": 15.485226639221237,
+        "shift_p90_pct": 49.70849203867456
+      },
+      "median": {
+        "price_mape_pct": 29.524002305398128,
+        "shift_median_pct": 19.98525469168902,
+        "shift_p90_pct": 51.65013610849347
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+floors+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 22.26294521477828,
+        "shift_median_pct": 10.695949800342271,
+        "shift_p90_pct": 37.451241342571514
+      },
+      "median": {
+        "price_mape_pct": 23.780806771184608,
+        "shift_median_pct": 14.147956246401842,
+        "shift_p90_pct": 38.990599803122024
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 27.590244415548614,
+        "shift_median_pct": 14.558746401987548,
+        "shift_p90_pct": 45.70298755594048
+      },
+      "median": {
+        "price_mape_pct": 28.813683293363972,
+        "shift_median_pct": 18.994032455808725,
+        "shift_p90_pct": 51.43332470978458
+      }
+    },
+    "bathrooms+sqft_living+floors+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 29.44293432766207,
+        "shift_median_pct": 15.022732193115393,
+        "shift_p90_pct": 49.610446502345155
+      },
+      "median": {
+        "price_mape_pct": 27.59383618883038,
+        "shift_median_pct": 16.71183378500452,
+        "shift_p90_pct": 46.558471895399265
+      }
+    },
+    "bathrooms+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "bathrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 19.9980098190682,
+        "shift_median_pct": 8.94919168591224,
+        "shift_p90_pct": 29.255096642708118
+      },
+      "median": {
+        "price_mape_pct": 23.57970995351646,
+        "shift_median_pct": 14.71454745327959,
+        "shift_p90_pct": 37.78869468815426
+      }
+    },
+    "sqft_living+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 5,
+      "combination": [
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 24.670709229556103,
+        "shift_median_pct": 12.12776796406195,
+        "shift_p90_pct": 39.85536358179754
+      },
+      "median": {
+        "price_mape_pct": 26.935468836154396,
+        "shift_median_pct": 16.93354858414416,
+        "shift_p90_pct": 48.369450370471455
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_above": {
+      "k": 6,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 30.746986946349047,
+        "shift_median_pct": 18.17926646706587,
+        "shift_p90_pct": 53.377854619327756
+      },
+      "median": {
+        "price_mape_pct": 30.398433036425914,
+        "shift_median_pct": 21.21139716862792,
+        "shift_p90_pct": 52.74434612461674
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_basement": {
+      "k": 6,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 23.18936656724481,
+        "shift_median_pct": 12.450560558828961,
+        "shift_p90_pct": 38.99664610805934
+      },
+      "median": {
+        "price_mape_pct": 24.654863466927313,
+        "shift_median_pct": 14.8829890856415,
+        "shift_p90_pct": 40.66572169819227
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+sqft_above+sqft_basement": {
+      "k": 6,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 28.835558240993464,
+        "shift_median_pct": 17.77027027027027,
+        "shift_p90_pct": 48.89997816256616
+      },
+      "median": {
+        "price_mape_pct": 29.27768215646126,
+        "shift_median_pct": 19.996607869742196,
+        "shift_p90_pct": 51.03581160635995
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+floors+sqft_above+sqft_basement": {
+      "k": 6,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 30.41913269146233,
+        "shift_median_pct": 17.124078230201988,
+        "shift_p90_pct": 51.91157670287866
+      },
+      "median": {
+        "price_mape_pct": 28.308990679420816,
+        "shift_median_pct": 17.795509370940803,
+        "shift_p90_pct": 47.37490631512249
+      }
+    },
+    "bedrooms+bathrooms+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 6,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 20.04667162256143,
+        "shift_median_pct": 9.690340471421969,
+        "shift_p90_pct": 30.11096877504553
+      },
+      "median": {
+        "price_mape_pct": 24.080413435284598,
+        "shift_median_pct": 14.86843241966223,
+        "shift_p90_pct": 39.75548890262453
+      }
+    },
+    "bedrooms+sqft_living+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 6,
+      "combination": [
+        "bedrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 26.00959005848431,
+        "shift_median_pct": 14.474643685780578,
+        "shift_p90_pct": 42.23628358164107
+      },
+      "median": {
+        "price_mape_pct": 27.73183410325149,
+        "shift_median_pct": 18.393501805054154,
+        "shift_p90_pct": 48.851127164168936
+      }
+    },
+    "bathrooms+sqft_living+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 6,
+      "combination": [
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 28.855030755187578,
+        "shift_median_pct": 16.624831309041834,
+        "shift_p90_pct": 48.271437216672524
+      },
+      "median": {
+        "price_mape_pct": 29.570874073818736,
+        "shift_median_pct": 20.850587524964006,
+        "shift_p90_pct": 52.16127119645212
+      }
+    },
+    "bedrooms+bathrooms+sqft_living+sqft_lot+floors+sqft_above+sqft_basement": {
+      "k": 7,
+      "combination": [
+        "bedrooms",
+        "bathrooms",
+        "sqft_living",
+        "sqft_lot",
+        "floors",
+        "sqft_above",
+        "sqft_basement"
+      ],
+      "loses_sqft_fill": true,
+      "served": {
+        "price_mape_pct": 35.04759220752894,
+        "shift_median_pct": 22.489212955377134,
+        "shift_p90_pct": 61.617299661960715
+      },
+      "median": {
+        "price_mape_pct": 30.631396541290908,
+        "shift_median_pct": 22.073723458884995,
+        "shift_p90_pct": 53.535355725446564
+      }
+    }
+  }
+}

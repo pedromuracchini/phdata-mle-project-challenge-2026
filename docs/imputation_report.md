@@ -104,7 +104,38 @@ Complete-data MAPE on the evaluation rows: **17.77 %**. Headline numbers for the
    median already beats KNN there (30.6 % vs 35.1 % MAPE), and a per-zipcode median may do better
    still. The same idea applies per feature: `sqft_lot` is better served by the median.
 
+## More than one missing field
+
+Every combination of missing house fields (k = 1 to 7, 127 combinations) on the same 5,297 rows,
+served method (sqft fill, then KNN) against the median imputer, from
+`scripts/evaluate_imputation_multi.py` (`make evaluate-imputation-multi`, about 19 minutes). The
+script checks that its k = 1 and k = 7 rows match the tables above exactly. Tables:
+[`imputation/missing_count_tables.md`](imputation/missing_count_tables.md); raw results:
+[`imputation/missing_count_results.json`](imputation/missing_count_results.json).
+
+| k missing | combinations | served MAPE: median [min – max] | served p90 shift: median | served beats median |
+| ---: | ---: | --- | ---: | ---: |
+| 0 | 1 | 17.77 | 0.00 % | – |
+| 1 | 7 | 17.77 [17.59 – 19.15] | 6.91 % | 6 / 7 |
+| 2 | 21 | 17.91 [17.59 – 23.83] | 16.60 % | 19 / 21 |
+| 3 | 35 | 19.17 [17.81 – 26.40] | 25.70 % | 32 / 35 |
+| 4 | 35 | 19.71 [18.22 – 28.61] | 27.91 % | 32 / 35 |
+| 5 | 21 | 23.01 [19.02 – 29.44] | 38.36 % | 18 / 21 |
+| 6 | 7 | 28.84 [20.05 – 30.75] | 48.27 % | 5 / 7 |
+| 7 | 1 | 35.05 | 61.62 % | 0 / 1 |
+
+- **Accuracy depends on which fields are missing, not on how many.** As long as one area field
+  can be recovered, the cost stays small: with only `sqft_living` known (k = 6), MAPE is 20.05 %.
+- **Losing the sqft fill is what hurts.** Three pairs lose it: `sqft_living+sqft_above` (MAPE
+  23.83 %, the worst pair), `sqft_living+sqft_basement` (19.44 %) and `sqft_above+sqft_basement`
+  (18.37 %). The other 18 pairs stay within 1.6 pp of complete data.
+- **The median imputer wins in two situations only:** `sqft_lot` missing (as at k = 1), or two or
+  more area fields missing together with other fields (k ≥ 3). That is the same weak spot as the
+  zipcode-only case: KNN within the zipcode, without the house's size, does worse than a central
+  value.
+
 ## Limitations
+
 
 - **Missingness is simulated as MCAR, one feature or all seven.** Real requests may be missing
   data for reasons that correlate with price. Pairs of missing features beyond the sqft identity
