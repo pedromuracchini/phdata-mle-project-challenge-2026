@@ -23,6 +23,9 @@ dependencies = [
     # Transitive (via scikit-learn); declared because src/model/imputer.joblib is written and
     # read with it directly. Same version that produced the artifact (imputer_metadata.json).
     "joblib==1.6.0",
+    # /metrics (src/core/metrics.py): the standard exposition library, and the only common one
+    # that aggregates several worker processes (multiprocess mode, ADR 005).
+    "prometheus-client>=0.26.0",
 ]
 
 [dependency-groups]

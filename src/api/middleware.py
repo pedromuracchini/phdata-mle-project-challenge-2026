@@ -2,7 +2,8 @@
 
 ``RequestLogMiddleware`` writes one structured line per request (``core/logging.py``):
 request_id, method, path, status, latency_ms, imputed_fields and model_version. Never the
-payload, the query string or the model's features.
+payload, the query string or the model's features. It also records the request's metrics
+(``core/metrics.py``), labelled by the matched route template.
 
 ``RequestIDMiddleware`` gives every HTTP request an ID. A safe incoming ``X-Request-ID`` (1-64
 characters from ``[A-Za-z0-9._-]``) is kept so a caller can trace its own requests; anything
@@ -18,6 +19,8 @@ import time
 import uuid
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from core import metrics
 
 REQUEST_LOGGER = "api.requests"
 logger = logging.getLogger(REQUEST_LOGGER)
@@ -80,6 +83,11 @@ class RequestLogMiddleware:
         try:
             await self.app(scope, receive, send_capturing_status)
         finally:
+            elapsed = time.perf_counter() - start
+            route = scope.get("route")
+            metrics.observe_request(
+                scope["method"], getattr(route, "path", "unmatched"), status, elapsed
+            )
             state = scope.get("state", {})
             logger.info(
                 "request",
@@ -88,7 +96,7 @@ class RequestLogMiddleware:
                     "method": scope["method"],
                     "path": scope["path"],
                     "status": status,
-                    "latency_ms": round((time.perf_counter() - start) * 1000, 3),
+                    "latency_ms": round(elapsed * 1000, 3),
                     "imputed_fields": state.get("imputed_fields"),
                     "model_version": getattr(scope["app"].state, "model_version", None),
                 },

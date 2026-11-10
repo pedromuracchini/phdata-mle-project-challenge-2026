@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from core import metrics
 from core.artifacts import ImputerArtifact, ModelArtifact
 from services.imputation import impute_missing
 from services.prediction import build_features
@@ -119,9 +120,19 @@ def predict(home_features: HomeFeatures, request: Request) -> dict[str, Any]:
     imputation = impute_missing(features, imputer.imputer, imputer.columns)
     request.state.imputed_fields = imputation.imputed_fields  # for the request log
     prediction = model.model.predict(imputation.features)
+    price = float(prediction[0])
+    metrics.record_prediction(imputation.imputed_fields, price)
 
     return {
-        "predicted_price": float(prediction[0]),
+        "predicted_price": price,
         "imputed_fields": imputation.imputed_fields,
         "model_version": state.model_version,
     }
+
+
+# `def`: with several workers a scrape reads every process's metric files (threadpool).
+@router.get("/metrics", include_in_schema=False)
+def prometheus_metrics() -> Response:
+    """Prometheus metrics, aggregated across worker processes (core/metrics.py)."""
+    body, content_type = metrics.render()
+    return Response(content=body, media_type=content_type)
