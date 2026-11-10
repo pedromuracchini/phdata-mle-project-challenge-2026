@@ -80,6 +80,9 @@
 - **Latency:** a request that reaches KNN costs about 180 ms more CPU than a complete one;
   the sqft fill avoids that for one missing sqft field
   ([`../benchmarks/phase-3-imputation.md`](../benchmarks/phase-3-imputation.md)). Phase 4 profiles it.
+  *Update (Phase 6):* that was the Phase 3 cost. After Phase 4 the difference is about 18 ms:
+  22.46 ms of server CPU per `one-null-knn` request against 4.89 ms per complete one, `main`
+  with one worker ([`../benchmarks/final.md`](../benchmarks/final.md)).
 - **Limits of the evidence:** missingness was simulated as MCAR, one feature or all seven; only
   one split; no confidence intervals, so differences under ~0.1 pp are noise. Pairs of missing
   fields were only tested for "no 500" (property-based tests), not for accuracy.

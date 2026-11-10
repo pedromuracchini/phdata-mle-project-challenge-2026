@@ -4,6 +4,53 @@ Record of cases where an AI agent proposed or did something that turned out wron
 a human rejected a suggestion (see "Decisions and AI log" in `.claude/CLAUDE.md`).
 Newest entries first.
 
+## Highlights
+
+Five entries from the full log below that show how the agent's work was checked: by a
+benchmark, by the test gates, by a re-check against the data, by the human, and by an A/B the
+human asked for. Each paragraph summarizes its entry; the entry itself is the record.
+
+**A rewrite silently dropped v0's per-request `print` (Phase 3).** Phase 3 had to make every
+field except `zipcode` nullable without changing complete requests; performance was Phase 4's
+job. In the `/predict` rewrite the agent removed v0's `print(input_data)` without saying so,
+probably following the "no `print`" convention. Predictions were unchanged, so every test
+passed. The Phase 3 benchmark caught it: complete requests ran at 109.8 req/s against 39.0 for
+the control, and the agent flagged the speed-up as suspicious instead of reporting it as a gain.
+The human chose to restore the `print` (failing test first, then `0d3129d`); Phase 4 removed it
+as its own measured step. Lesson kept: an unexpected speed-up is a bug signal until explained.
+
+**"Pure performance" thread limits changed a prediction (Phase 4).** The agent planned one
+BLAS/OpenMP thread per process as a performance-only change and expected the gates to pass. The
+characterization test failed on row 99 (573,300 vs 564,800) and `make check-equivalence`
+reported 93 of 128 patterns different. Value dumps under five thread configurations showed that
+imputed values never changed; only the OpenMP count of the model's KNN search did, on 93 of
+12,800 calls, all exact ties at the 5th neighbour. The human chose one thread and approved
+amending row 99, whose recorded value had depended on the recording host's core count.
+
+**The imputation report draft overstated results (Phase 3).** The agent's first draft of
+`docs/imputation_report.md` summarized several numbers more favourably than the generated
+tables supported, for example "scaling improves the p90 shift on every feature" when
+`sqft_basement` got 0.1 pp worse. A re-check of every claim against
+`docs/imputation/evaluation_results.json`, before the report was proposed for commit, caught
+it. Each sentence was corrected, and the human took the decision (sqft fill only) on the
+corrected text.
+
+**Proposed editing the baseline fixture to pass a check (Phase 2).** After confirming that all
+100 predictions were bit-for-bit identical on Python 3.12, the agent asked to change the
+fixture's recorded Python version from 3.10.22 to 3.12.16, as the failing test's own message
+suggested, and started the edit after a "yes". That would have made the fixture claim it was
+recorded on 3.12. The human rejected it before anything was written: the baseline was recorded
+on 3.10. The test was split instead (model libraries checked against the fixture, Python
+against `.python-version`, `33f5e85`).
+
+**An untested cause for a performance regression (Phase 5).** With six workers, the metrics
+commit cost complete requests 10–15% throughput at unchanged CPU per request. After ruling out
+the HEALTHCHECK, the agent put forward, unverified, that the memory-mapped metric files stalled
+on overlayfs writeback, and offered "mount a tmpfs" as deployment advice. The A/B the human
+asked for gave the same loss on a tmpfs (0.852). No advice was published; ADR 005 records the
+regression as accepted with an unknown cause. Lesson kept: a hypothesis about a performance
+cause stays labelled as one until a run tests it.
+
 ## Entry format
 
 ```markdown
