@@ -22,7 +22,7 @@ DATA_DIR = SRC_DIR / "data"
 
 
 class Settings(BaseSettings):
-    """Paths to the model artifacts and reference data."""
+    """Paths to the model artifacts and reference data, and the CORS policy."""
 
     # protected_namespaces=(): allow field names starting with ``model_``.
     model_config = SettingsConfigDict(env_prefix="APP_", frozen=True, protected_namespaces=())
@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     sales_path: Path = DATA_DIR / "kc_house_data.csv"
     imputer_path: Path = MODEL_DIR / "imputer.joblib"
     imputer_metadata_path: Path = MODEL_DIR / "imputer_metadata.json"
+    # Browser origins allowed to call the API (CORS), e.g.
+    # APP_CORS_ALLOWED_ORIGINS='["https://app.example.com"]'. Empty (the default): CORS is off
+    # and browsers on other origins cannot read the responses. Server-to-server clients do not
+    # need it.
+    cors_allowed_origins: list[str] = []
 
 
 @lru_cache
