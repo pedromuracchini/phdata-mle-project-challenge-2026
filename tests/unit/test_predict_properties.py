@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
+from api.endpoints import UPPER_BOUNDS
 from core.config import get_settings
 from services.imputation import HOUSE_FEATURES
 
@@ -19,9 +20,22 @@ KNOWN_ZIPCODES = sorted(
     pd.read_csv(get_settings().demographics_path, dtype={"zipcode": str})["zipcode"]
 )
 
-finite_floats = st.floats(allow_nan=False, allow_infinity=False)
-# JSON integers the int64 model frame can hold.
-bedrooms_values = st.integers(min_value=-(2**63), max_value=2**63 - 1)
+
+def valid_values(field: str) -> st.SearchStrategy[Any]:
+    """Any value the schema accepts for the field (sanity bounds included, ADR 005)."""
+    if field == "bedrooms":
+        return st.integers(min_value=0, max_value=int(UPPER_BOUNDS[field]))
+    return st.floats(min_value=0, max_value=UPPER_BOUNDS[field])
+
+
+def out_of_range_values(field: str) -> st.SearchStrategy[Any]:
+    """Finite values below 0 or above the field's upper bound."""
+    bound = UPPER_BOUNDS[field]
+    if field == "bedrooms":
+        return st.integers(max_value=-1) | st.integers(min_value=int(bound) + 1)
+    below = st.floats(max_value=0, exclude_max=True, allow_infinity=False)
+    above = st.floats(min_value=bound, exclude_min=True, allow_infinity=False)
+    return below | above
 
 
 @st.composite
@@ -34,7 +48,7 @@ def payloads(draw: st.DrawFn) -> tuple[dict[str, Any], list[str]]:
             if draw(st.booleans()):
                 payload[field] = None  # explicit null; otherwise omitted
         else:
-            payload[field] = draw(bedrooms_values if field == "bedrooms" else finite_floats)
+            payload[field] = draw(valid_values(field))
     return payload, [field for field in HOUSE_FEATURES if field in missing]
 
 
@@ -79,3 +93,25 @@ def test_every_missing_field_subset_returns_200(
 
     assert response.status_code == 200, (payload, response.text)
     assert response.json()["imputed_fields"] == list(missing)
+
+
+@st.composite
+def out_of_range_payloads(draw: st.DrawFn) -> tuple[dict[str, Any], str]:
+    """A valid request with one house field set outside its bounds."""
+    payload, _ = draw(payloads())
+    field = draw(st.sampled_from(HOUSE_FEATURES))
+    payload[field] = draw(out_of_range_values(field))
+    return payload, field
+
+
+@settings(max_examples=int(os.environ.get("HYPOTHESIS_MAX_EXAMPLES", "300")), deadline=None)
+@given(case=out_of_range_payloads())
+def test_out_of_range_values_return_422_not_500(
+    client: TestClient, case: tuple[dict[str, Any], str]
+) -> None:
+    payload, field = case
+
+    response = client.post("/predict", json=payload)
+
+    assert response.status_code == 422, (payload, response.status_code, response.text)
+    assert ["body", field] in [error["loc"] for error in response.json()["detail"]]

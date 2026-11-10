@@ -11,8 +11,10 @@ from starlette.datastructures import State
 
 from api.endpoints import router as api_router
 from api.errors import register_error_handlers
-from core.artifacts import load_demographics, load_imputer, load_model
+from api.middleware import RequestIDMiddleware, RequestLogMiddleware
+from core.artifacts import compute_model_version, load_demographics, load_imputer, load_model
 from core.config import Settings, get_settings
+from core.logging import configure_logging
 
 
 def load_artifacts(state: State, settings: Settings) -> None:
@@ -21,25 +23,37 @@ def load_artifacts(state: State, settings: Settings) -> None:
     state.model = model
     state.demographics = load_demographics(settings, model.features)
     state.imputer = load_imputer(settings)
+    state.model_version = compute_model_version(settings)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Load every artifact once, before the first request; fail startup if any is invalid."""
+    configure_logging()
     load_artifacts(app.state, get_settings())
     yield
 
 
+def add_cors(app: FastAPI, settings: Settings) -> None:
+    """Allow the configured browser origins; add nothing at all when there are none."""
+    if not settings.cors_allowed_origins:
+        return
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_allowed_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "X-Request-ID"],
+        expose_headers=["X-Request-ID"],
+    )
+
+
 app = FastAPI(lifespan=lifespan)
 
-# Unchanged from v0; Phase 5 reviews CORS.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+add_cors(app, get_settings())
+# Added last, so they are the outermost middleware: every response carries the ID, and the
+# request log (inside it) sees the ID and times everything else.
+app.add_middleware(RequestLogMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 register_error_handlers(app)
 app.include_router(api_router)

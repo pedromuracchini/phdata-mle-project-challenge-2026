@@ -18,6 +18,41 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-09: blamed the multiprocess metrics regression on disk writeback (wrong)
+
+- **Phase / task:** Phase 5, C12 (Prometheus metrics in multiprocess mode).
+- **Asked:** add multiprocess metrics within the A/B budget; stop and show if over.
+- **Produced:** with six workers, complete requests lost 10–15% throughput at unchanged CPU
+  per request. A rerun without the HEALTHCHECK ruled that out. The agent then put forward,
+  unverified, a cause: the metric files are memory-mapped on overlayfs, so the workers would
+  stall on disk writeback. It also offered "mount a tmpfs" as the deployment advice.
+- **Caught by:** the A/B the human asked for: with `--tmpfs /tmp/prometheus` the loss was the
+  same (0.852).
+- **Outcome:** no deployment advice was published; ADR 005 records the regression as accepted
+  with an unknown cause. Lesson: a hypothesis about a performance cause stays labelled as one
+  until a run tests it. The A/B that could refute it costs two minutes; a wrong
+  recommendation in an ADR costs more.
+
+### 2026-11-09: unrequested memory tweak cost 5–15% on KNN requests (rejected)
+
+- **Phase / task:** Phase 5, C6 (`model_version` in `/predict`).
+- **Asked:** add `model_version`, derived from the artifact hashes at startup, within the A/B
+  budget.
+- **Produced:** C6 was already within budget (every 1-worker ratio within 1.5% of 7257ac9).
+  Its A/B also showed about +4 MiB per worker from hashing `model.pkl` with `read_bytes`.
+  Nobody had asked for it, but the agent switched the shared `sha256_file` to a streaming
+  `hashlib.file_digest`. Memory fell by 70 MiB, but KNN requests got 5% slower with one worker
+  and 10% with six, and CPU per request rose 10–15%. The likely cause: the old full read freed
+  a 4.8 MB buffer at startup, which raised glibc's mmap threshold so KNN's temporary arrays
+  were reused from the heap. The agent then proposed a diagnostic run and malloc tuning in the
+  Dockerfile.
+- **Caught by:** the A/B rerun (over budget); the human rejected the follow-up as
+  overengineering.
+- **Outcome:** reverted; C6 shipped as first measured, with +4 MiB per worker noted for
+  ADR 005. Lessons: a change that meets its budget ships as is, and side observations get
+  reported, not fixed on the spot. Also, a change to a shared helper can move performance in
+  code it doesn't obviously touch, so it gets the full A/B.
+
 ### 2026-11-08: chose py-spy to diagnose the native thread pools
 
 - **Phase / task:** Phase 4, step 3 (profile main's KNN requests).

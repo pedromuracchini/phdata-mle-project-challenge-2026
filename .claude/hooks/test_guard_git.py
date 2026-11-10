@@ -149,6 +149,95 @@ class GuardGitTest(unittest.TestCase):
     def test_unbalanced_quotes_still_checked(self) -> None:
         self.assert_blocked('git commit -m "chore: x', self.main_repo)
 
+    # Gap: `cd <repo> && git commit` checked the branch of the hook's cwd, not of <repo>.
+
+    def test_cd_decides_which_branch_is_checked(self) -> None:
+        self.assert_blocked(f"cd {self.main_repo} && {GOOD}", self.feature_repo)
+        self.assert_allowed(f"cd {self.feature_repo} && {GOOD}", self.main_repo)
+
+    def test_relative_cd_is_resolved_from_the_cwd(self) -> None:
+        root = str(Path(self.main_repo).parent)
+        self.assert_blocked(f"cd on_main; {GOOD}", root)
+        self.assert_blocked(f"cd on_feature && cd ../on_main && {GOOD}", root)
+
+    def test_cd_also_moves_dash_c_and_message_file_paths(self) -> None:
+        root = str(Path(self.main_repo).parent)
+        self.assert_blocked(f"cd {root} && git -C on_main {GOOD[4:]}", self.feature_repo)
+
+    # Gap: `VAR=1 git ...` (also `env VAR=1 git ...`) hid the git command.
+
+    def test_blocks_commit_behind_variable_assignments(self) -> None:
+        self.assert_blocked(f"GIT_AUTHOR_NAME=x {GOOD}", self.main_repo)
+        self.assert_blocked(f"A=1 B='two words' {GOOD}", self.main_repo)
+        self.assert_blocked('FOO=1 git commit -m "added stuff"', self.feature_repo)
+
+    def test_blocks_commit_behind_env(self) -> None:
+        for prefix in ("env", "env FOO=1", "env FOO=1 BAR=2"):
+            self.assert_blocked(f"{prefix} {GOOD}", self.main_repo)
+
+    def test_blocks_push_behind_variable_assignment(self) -> None:
+        self.assert_blocked("GIT_SSH_COMMAND=ssh git push origin main", self.feature_repo)
+
+    def test_allows_assignment_without_git(self) -> None:
+        self.assert_allowed("FOO=1 ls", self.main_repo)
+
+    # Gap: `bash -c "git ..."` hid the git command inside a string.
+
+    def test_blocks_commit_inside_shell_dash_c(self) -> None:
+        for shell in ("bash -c", "sh -c", "zsh -c", "bash -lc", "/bin/bash -c"):
+            self.assert_blocked(f"{shell} '{GOOD}'", self.main_repo)
+        self.assert_blocked("bash -c \"git commit -m 'added stuff'\"", self.feature_repo)
+
+    def test_shell_dash_c_sees_its_own_cd(self) -> None:
+        self.assert_blocked(f"bash -c 'cd {self.main_repo} && {GOOD}'", self.feature_repo)
+
+    def test_allows_good_commit_inside_shell_dash_c(self) -> None:
+        self.assert_allowed(f"bash -c '{GOOD}'", self.feature_repo)
+
+    # Gap: the message of `-am "..."` (clustered short options) was not checked.
+
+    def test_checks_message_of_clustered_short_options(self) -> None:
+        self.assert_blocked('git commit -am "added stuff"', self.feature_repo)
+        self.assert_blocked('git commit -vam "added stuff"', self.feature_repo)
+        self.assert_blocked('git commit -am"added stuff"', self.feature_repo)
+        self.assert_allowed('git commit -am "chore: add x"', self.feature_repo)
+
+    def test_cluster_without_m_is_not_read_as_message(self) -> None:
+        self.assert_allowed('git commit -av -m "chore: add x"', self.feature_repo)
+
+    # Gap: the message given with `-F <file>` / `--file=<file>` was not checked.
+
+    def write_message(self, name: str, text: str) -> str:
+        path = Path(self.feature_repo) / name
+        path.write_text(text)
+        self.addCleanup(path.unlink)
+        return str(path)
+
+    def test_checks_message_file(self) -> None:
+        bad = self.write_message("bad.txt", "added stuff\n\nBody.\n")
+        good = self.write_message("good.txt", "chore: add x\n\nBody.\n")
+        for form in ("-F {}", "-F{}", "--file={}", "--file {}"):
+            self.assert_blocked(f"git commit {form.format(bad)}", self.feature_repo)
+            self.assert_allowed(f"git commit {form.format(good)}", self.feature_repo)
+
+    def test_message_file_is_resolved_from_the_command_cwd(self) -> None:
+        self.write_message("rel-bad.txt", "added stuff\n")
+        self.assert_blocked("git commit -F rel-bad.txt", self.feature_repo)
+        root = str(Path(self.feature_repo).parent)
+        self.assert_blocked("cd on_feature && git commit -F rel-bad.txt", root)
+        self.assert_blocked("git -C on_feature commit -F rel-bad.txt", root)
+
+    def test_checks_message_file_in_clustered_options(self) -> None:
+        bad = self.write_message("bad-am.txt", "added stuff\n")
+        self.assert_blocked(f"git commit -aF {bad}", self.feature_repo)
+
+    def test_blocks_unreadable_message_file(self) -> None:
+        self.assert_blocked("git commit -F does-not-exist.txt", self.feature_repo)
+
+    def test_blocks_message_from_stdin(self) -> None:
+        self.assert_blocked("printf 'chore: x' | git commit -F -", self.feature_repo)
+        self.assert_blocked("git commit -F - <<'EOF'\nchore: add x\nEOF", self.feature_repo)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,7 @@ from services.imputation import HOUSE_FEATURES
 def assert_prediction(response: Any, imputed: list[str]) -> None:
     assert response.status_code == 200, response.text
     body = response.json()
-    assert set(body) == {"predicted_price", "imputed_fields"}
+    assert set(body) == {"predicted_price", "imputed_fields", "model_version"}
     assert body["imputed_fields"] == imputed
     assert math.isfinite(body["predicted_price"])
     assert body["predicted_price"] > 0
@@ -84,17 +84,6 @@ def test_several_null_fields_are_listed_in_model_order(
     )
 
 
-def test_extra_fields_are_still_ignored(
-    test_client: TestClient, sample_home_features: dict[str, Any]
-) -> None:
-    payload = {**sample_home_features, "waterfront": 1, "grade": 13, "lat": 47.5}
-
-    response = test_client.post("/predict", json=payload)
-
-    assert_prediction(response, imputed=[])
-    assert response.json()["predicted_price"] == 253980.0
-
-
 def test_missing_zipcode_is_rejected(
     test_client: TestClient, sample_home_features: dict[str, Any]
 ) -> None:
@@ -128,8 +117,7 @@ def test_unknown_zipcode_is_a_json_422(
             {
                 "type": "unknown_zipcode",
                 "loc": ["body", "zipcode"],
-                "msg": "Unknown zipcode 00000: no demographic data for it.",
-                "input": "00000",
+                "msg": "Unknown zipcode: no demographic data for it.",
             }
         ]
     }
@@ -169,7 +157,7 @@ def test_non_finite_numbers_are_rejected(
     assert response.json()["detail"][0]["loc"] == ["body", field]
 
 
-def test_validation_error_body_is_unchanged_for_ordinary_errors(
+def test_validation_error_body_has_loc_msg_and_type_only(
     test_client: TestClient, sample_home_features: dict[str, Any]
 ) -> None:
     response = test_client.post("/predict", json={**sample_home_features, "zipcode": 98042})
@@ -181,7 +169,61 @@ def test_validation_error_body_is_unchanged_for_ordinary_errors(
                 "type": "string_type",
                 "loc": ["body", "zipcode"],
                 "msg": "Input should be a valid string",
-                "input": 98042,
             }
         ]
     }
+
+
+SECRET = "s3cr3t-value-7f1c"
+
+
+def invalid_bodies(sample: dict[str, Any]) -> dict[str, str]:
+    """Raw request bodies that fail validation, each carrying SECRET in a rejected value."""
+    return {
+        "wrong-type": json.dumps({**sample, "bedrooms": SECRET}),
+        "bad-zipcode": json.dumps({**sample, "zipcode": SECRET}),
+        "zipcode-wrong-type": json.dumps({**sample, "zipcode": [SECRET]}),
+        "out-of-range": json.dumps({**sample, "sqft_lot": -7.13579}).replace(
+            "-7.13579", "-" + "9" * 30
+        ),
+        "nan": json.dumps({**sample, "floors": "__NAN__"}).replace('"__NAN__"', "NaN"),
+        "body-not-object": json.dumps([SECRET]),
+        "malformed-json": '{"zipcode": "98042", "bedrooms": ' + SECRET,
+    }
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "wrong-type",
+        "bad-zipcode",
+        "zipcode-wrong-type",
+        "out-of-range",
+        "nan",
+        "body-not-object",
+        "malformed-json",
+    ],
+)
+def test_422_never_echoes_the_input(
+    test_client: TestClient, sample_home_features: dict[str, Any], case: str
+) -> None:
+    body = invalid_bodies(sample_home_features)[case]
+
+    response = test_client.post(
+        "/predict", content=body, headers={"content-type": "application/json"}
+    )
+
+    assert response.status_code == 422, response.text
+    errors = response.json()["detail"]
+    assert errors
+    for error in errors:
+        assert set(error) == {"loc", "msg", "type"}, error
+    assert SECRET not in response.text
+    assert "9" * 30 not in response.text
+
+
+def test_unknown_zipcode_is_not_echoed(test_client: TestClient) -> None:
+    response = test_client.post("/predict", json={"zipcode": "00042"})
+
+    assert response.status_code == 422
+    assert "00042" not in response.text

@@ -28,9 +28,16 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # --- runtime: same base image, the venv and the application ----------------------------------
 FROM ${PYTHON_IMAGE}
 
-# Install curl for health checks (docker-compose.test.yml)
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# Unprivileged user for the server. The application files stay owned by root, so the process
+# cannot modify its own code or artifacts.
+RUN groupadd --system --gid 10001 app && \
+    useradd --system --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
+
+# Prometheus multiprocess mode (core/metrics.py): every worker writes its metrics to files here
+# and a scrape aggregates them. Owned by the app user; mode 1777 (like /tmp) so `docker run
+# --user <uid>` runs, e.g. `make check-equivalence`, can write their own files too.
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+RUN install -d -m 1777 -o app -g app /tmp/prometheus
 
 WORKDIR /app
 
@@ -60,5 +67,19 @@ COPY src .
 # --http: uvicorn's h11 protocol plus TCP_NODELAY. Serving from worker processes, uvicorn
 # leaves Nagle on and every response waited ~44 ms for the client's ACK (core/server.py).
 ENV WEB_CONCURRENCY=1
+
+USER app
+
+# Liveness only (/health checks no dependency; /ready is readiness). Python's urllib instead of
+# curl, so the image needs no extra package; urlopen fails on any non-2xx status. Checked every
+# second during the start period, so `docker compose` sees the API healthy as soon as it is.
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 --start-period=30s --start-interval=1s \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+
+# Empty the metrics directory before uvicorn starts its workers: files left by a previous run
+# of this container would be added to the new counters. It cannot be done in the lifespan,
+# which every worker runs. Then exec the CMD (unchanged; signals reach uvicorn directly).
+ENTRYPOINT ["/bin/sh", "-c", "d=\"${PROMETHEUS_MULTIPROC_DIR:-}\"; if [ -n \"$d\" ]; then mkdir -p \"$d\" && find \"$d\" -mindepth 1 -delete; fi; exec \"$@\"", "--"]
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", \
      "--http", "core.server:NoDelayH11Protocol"]

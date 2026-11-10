@@ -1,0 +1,58 @@
+# Lint, type check and tests on the host (uv, locked), then the production image: built and
+# checked against the characterization baseline over HTTP. Same Makefile targets as locally.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# A newer push to the same branch cancels the run still in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, types, tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # Same uv as pyproject.toml ([tool.uv] required-version) and the Dockerfiles; it installs
+      # the Python pinned in .python-version. The cache is keyed on uv.lock.
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --frozen
+      - run: make lint
+      - run: make typecheck
+      # Hook, unit and characterization tests, with the coverage report.
+      - run: make test
+      # Coverage is reported (job summary), not gated.
+      - name: Coverage summary
+        run: |
+          echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
+          make coverage-report >> "$GITHUB_STEP_SUMMARY"
+      - run: make check-imputer
+
+  image:
+    name: Image characterization
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      # check-imputer (a prerequisite of the target) refits the imputer on the host.
+      - run: uv sync --frozen
+      # Builds the API image (Dockerfile) and the test image, waits for the API's HEALTHCHECK,
+      # then runs tests/integration against it: the characterization baseline over HTTP.
+      - run: mkdir -p test-results && make test-integration
