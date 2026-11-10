@@ -1,6 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
 	setup test test-hooks test-docker lint typecheck bench docker-build docker-run docker-dev \
-	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence coverage-report demo
+	fit-imputer check-imputer evaluate-imputation evaluate-imputation-multi ab-bench check-equivalence coverage-report demo
 
 # Build the test Docker image
 test-build:
@@ -151,6 +151,13 @@ evaluate-imputation:
 	$(call require,uv)
 	$(UV_RUN) python scripts/evaluate_imputation.py
 
+# Accuracy by number of missing house fields, all 127 combinations (served vs median): writes
+# docs/imputation/missing_count_results.json and missing_count_tables.md, after checking the
+# k = 1 and k = 7 rows against evaluation_results.json. MULTI_CSV=<path> also writes a flat CSV.
+evaluate-imputation-multi:
+	$(call require,uv)
+	$(UV_RUN) python scripts/evaluate_imputation_multi.py $(if $(MULTI_CSV),--csv $(MULTI_CSV))
+
 # Bit-for-bit check of the imputation path (scripts/check_equivalence.py): every unseen row x
 # every null pattern through the working tree's image, compared with the reference generated
 # from main's image (model input after imputation, prediction, imputed_fields).
@@ -213,6 +220,7 @@ help:
 	@echo "  fit-imputer       - Fit the KNN imputer and write src/model/imputer.joblib"
 	@echo "  check-imputer     - Refit in memory; fail if the committed imputer differs"
 	@echo "  evaluate-imputation - Compare imputation methods (docs/imputation/)"
+	@echo "  evaluate-imputation-multi - Accuracy by number of missing fields (docs/imputation/)"
 	@echo "  docker-build      - Build the API image (runs check-imputer first)"
 	@echo "  docker-run        - Run the API on port $(PORT) (WORKERS=N for N processes)"
 	@echo "  docker-dev        - Run the API with src/ mounted and auto-reload (development)"
