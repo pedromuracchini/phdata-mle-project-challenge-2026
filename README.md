@@ -1,296 +1,70 @@
-# FastAPI Machine Learning Model Deployment
+# Sound Realty house-price API
 
-This project implements a RESTful API using FastAPI to deploy a machine learning model for predicting home prices based on various features. The model is trained on real estate data and can provide predictions based on user input.
+A FastAPI service that predicts the sale price of a house in the Seattle area (King County).
+`POST /predict` takes eight house fields, joins the zipcode's demographics, and returns the
+price predicted by the trained model in `src/model/model.pkl` (a scikit-learn
+`RobustScaler -> KNeighborsRegressor` pipeline, not retrained in this project). It ships as a
+Docker image.
 
-## Project Structure
+## Overview
 
-```
-mle-project-challenge-2026
-├── src
-│   ├── main.py                # Entry point for the FastAPI application
-│   ├── api
-│   │   └── endpoints.py       # API endpoints for predictions
-│   ├── model
-│   │   ├── model.pkl          # Serialized machine learning model
-│   │   └── model_features.json # Features required for predictions
-│   ├── data
-│   │   ├── kc_house_data.csv  # Training data for the model
-│   │   ├── zipcode_demographics.csv # Demographic data for predictions
-│   │   └── future_unseen_examples.csv # Examples for testing the API
-│   └── utils
-│       └── loader.py          # Utility functions for loading the model
-├── pyproject.toml              # Dependencies (uv) and tool configuration
-├── uv.lock                     # Locked versions of every dependency (committed)
-├── .python-version             # Python version used locally and in the images
-├── Dockerfile                  # Docker instructions for deployment
-├── README.md                   # Project documentation
-└── tests
-    └── test_api.py            # Test cases for the API
-```
+What changed vs the service as received (`v0-original` tag):
 
-## Setup Instructions
+- **Missing data.** Every field except `zipcode` may be `null` or omitted. One missing sqft field
+  is derived exactly from `sqft_living = sqft_above + sqft_basement`; anything else is imputed
+  with the KNN imputer from `notebooks/imputation_experiment.ipynb`, fitted once and shipped as
+  an artifact. The response lists the `imputed_fields`.
+  [ADR 002](docs/adr/002-persisted-imputer-artifact.md), [ADR 003](docs/adr/003-imputation-design.md).
+- **Performance.** Per-request file reads, a debug `print` and thread-pool contention are gone;
+  the server runs without `--reload`, with worker processes and `TCP_NODELAY`. Measured in one
+  session against the service as received: **9.2×** the throughput on complete requests with
+  one worker, **19.9×** with six. On requests that need KNN, against the first version that
+  could serve them: **18.1–22.3×** with one worker, **39.6–42.2×** with six
+  ([`docs/benchmarks/final.md`](docs/benchmarks/final.md)). [ADR 004](docs/adr/004-serving-performance.md).
+- **Production readiness.** A strict request contract (unknown fields are rejected: a breaking
+  change, see [`docs/api.md`](docs/api.md)), error bodies without request data, `model_version`,
+  `X-Request-ID`, one JSON log line per request, Prometheus metrics, `/ready`, a non-root image
+  and CI. [ADR 005](docs/adr/005-production-readiness.md).
+- **Dependencies.** uv with a committed lockfile, Python 3.12.16, the model's libraries pinned
+  exactly. [ADR 001](docs/adr/001-uv-and-python-version.md).
+- **Predictions for complete requests are unchanged**, with one approved exception: baseline
+  row 99, an exact tie at the model's 5th neighbour, moved from 564,800 to 573,300 when the
+  OpenMP thread count was fixed at one (it used to depend on the host's core count). Recorded in
+  `tests/fixtures/baseline_predictions.json` (`amendments`) and
+  [ADR 004](docs/adr/004-serving-performance.md), decision 3.
 
-### Prerequisites
+Every design decision has an ADR ([index](docs/adr/README.md)). How the AI agent was used and
+checked: [`AI_USAGE.md`](AI_USAGE.md).
 
-- Docker installed on your system
-- Git (for cloning the repository)
-- [uv](https://docs.astral.sh/uv/) for local development (it installs the right Python itself)
+## Quick start
 
-### Local development (uv)
-
-Dependencies are locked in `uv.lock`; the Docker images install the same versions.
-
-```bash
-make setup                   # uv sync --frozen: Python from .python-version + locked deps
-make lint typecheck test     # ruff, mypy and the tests, all through `uv run`
-```
-
-Add a dependency with `uv add <pkg>` (or `uv add --dev <pkg>`), never with pip.
-
-### Step 1: Clone the Repository
+Prerequisites: `git`, `make`, `curl`, [uv](https://docs.astral.sh/uv/) **0.13.7** (the version
+`pyproject.toml` requires; uv installs Python 3.12.16 itself), and Docker with BuildKit (the
+Dockerfiles use `RUN --mount`).
 
 ```bash
-git clone <repository-url>
-cd mle-project-challenge-2026
+git clone https://github.com/pedromuracchini/phdata-mle-project-challenge-2026.git
+cd phdata-mle-project-challenge-2026
+
+make setup                   # uv sync --frozen: Python 3.12.16 + the locked dependencies in .venv
+uv run pre-commit install    # once per clone: ruff and mypy run on every commit
+make test                    # hook tests, unit tests, characterization test (about 30 s)
+make docker-build            # verifies the imputer artifact (make check-imputer), builds the image
+make docker-run              # serves on http://localhost:8000, in the foreground; Ctrl+C stops it
 ```
 
-### Step 2: Generate Model Artifacts (First Time Only)
-
-Before running the API, you need to generate the model files. This only needs to be done once, or when you want to retrain the model.
-
-> **Note:** `src/model/model.pkl` is already committed and must not be retrained in this
-> project. Running the container below with the volume mount overwrites it.
-
-**Build the model creation Docker image:**
-```bash
-docker build -f src/model/Dockerfile -t create-model .
-```
-
-**Run the container to generate model artifacts:**
-```bash
-docker run --rm -v "$(pwd)/src/model:/app/model" create-model
-```
-
-This will create `model.pkl` and `model_features.json` in the `src/model/` directory.
-
-### Step 3: Build and Run the API
-
-**Build the API Docker image:**
-```bash
-docker build -t mle-project-challenge-2026 .
-```
-
-**Run the API container:**
-```bash
-docker run -d -p 8000:8000 --name housing-api mle-project-challenge-2026
-```
-
-### Step 4: Access the API
-
-Open your browser and go to `http://127.0.0.1:8000/docs` to view the interactive API documentation.
-
-### Managing the Container
-
-**Stop the container:**
-```bash
-docker stop housing-api
-```
-
-**Start the container again:**
-```bash
-docker start housing-api
-```
-
-**Remove the container:**
-```bash
-docker rm housing-api
-```
-
-**View container logs:**
-```bash
-docker logs housing-api
-```
-
-## Usage
-
-To get predictions from the model, send a POST request to the `/predict` endpoint with the required features in JSON format. The API will return the predicted home price along with any additional metadata.
-
-## Testing
-
-This project uses Docker-based testing to ensure environment consistency between testing and production. All tests run inside Docker containers, eliminating "works on my machine" issues.
-
-### Quick Start
-
-Run unit tests (fast, recommended for development):
-```bash
-make test-unit
-```
-
-Run integration tests (full environment):
-```bash
-make test-integration
-```
-
-Run all tests:
-```bash
-make test-all
-```
-
-### Test Types
-
-**Unit Tests** (`tests/unit/`)
-- Use FastAPI TestClient for in-process testing
-- No external dependencies or containers required
-- Fast execution (typically under 30 seconds)
-- Ideal for rapid development iteration
-
-**Integration Tests** (`tests/integration/`)
-- Test against a real running API container
-- Verify end-to-end functionality via HTTP requests
-- Ensure Docker networking and orchestration work correctly
-- More comprehensive but slower execution
-
-### Running Tests
-
-#### Unit Tests Only
+In a second terminal:
 
 ```bash
-make test-unit
+curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
+  -d '{"bedrooms": 4, "bathrooms": 1.0, "sqft_living": 1680, "sqft_lot": 5043, "floors": 1.5,
+       "sqft_above": 1680, "sqft_basement": 0, "zipcode": "98118"}'
 ```
 
-This command:
-- Builds the test Docker image
-- Runs only tests in `tests/unit/` directory
-- Generates coverage reports
-- Completes quickly without starting the full API container
-
-#### Integration Tests Only
-
-```bash
-make test-integration
+```json
+{"predicted_price":458520.0,"imputed_fields":[],"model_version":"3ffdefa1129b-e6ee4278080a"}
 ```
 
-This command:
-- Builds both API and test containers using Docker Compose
-- Starts the API container and waits for health check
-- Runs tests in `tests/integration/` directory
-- Automatically stops and removes containers when complete
-
-#### All Tests
-
-```bash
-make test-all
-```
-
-Runs both integration and unit tests for comprehensive validation.
-
-### Viewing Coverage Reports
-
-After running tests, coverage reports are generated in the `test-results/` directory:
-
-**HTML Coverage Report:**
-```bash
-open test-results/coverage/index.html
-```
-
-**Terminal Coverage Summary:**
-Coverage is automatically displayed in the terminal after test execution.
-
-### Running Specific Tests
-
-Run a specific test file:
-```bash
-docker run --rm ml-api-test pytest tests/unit/test_api_unit.py -v
-```
-
-Run a specific test function:
-```bash
-docker run --rm ml-api-test pytest tests/unit/test_api_unit.py::test_predict_endpoint -v
-```
-
-Run tests matching a pattern:
-```bash
-docker run --rm ml-api-test pytest -k "predict" -v
-```
-
-### Troubleshooting
-
-**Issue: "Cannot connect to the Docker daemon"**
-
-Solution: Ensure Docker is running on your system.
-```bash
-docker ps  # Should list running containers without error
-```
-
-**Issue: Integration tests fail with connection errors**
-
-Solution: Check if the API container is healthy.
-```bash
-docker compose -f docker-compose.test.yml up
-# In another terminal:
-docker compose -f docker-compose.test.yml ps
-docker compose -f docker-compose.test.yml logs api
-```
-
-**Issue: Tests pass locally but fail in Docker**
-
-Solution: This usually indicates environment differences. Check:
-- Model artifacts exist in `model/` directory
-- Data files exist in `data/` directory
-- The lockfile is in sync with `pyproject.toml` (`uv lock --check`)
-
-**Issue: "Port 8000 already in use"**
-
-Solution: Stop any running containers or services using port 8000.
-```bash
-docker compose -f docker-compose.test.yml down
-docker stop housing-api  # If the main API is running
-```
-
-**Issue: Test results not appearing in `test-results/` directory**
-
-Solution: Ensure the directory exists and has proper permissions.
-```bash
-mkdir -p test-results
-chmod 755 test-results
-```
-
-**Issue: Tests are very slow**
-
-Solution: Run unit tests only for faster feedback during development.
-```bash
-make test-unit  # Much faster than integration tests
-```
-
-**Issue: "Image not found" errors**
-
-Solution: Build the test image explicitly.
-```bash
-make test-build
-```
-
-### Cleaning Up
-
-Remove test containers and artifacts:
-```bash
-make clean
-```
-
-This removes:
-- All Docker containers created by docker-compose.test.yml
-- All test result files and coverage reports
-
-### Development Workflow
-
-For rapid development iteration:
-
-1. Make code changes in `src/` or test changes in `tests/`
-2. Run unit tests: `make test-unit`
-3. Fix any issues and repeat
-4. Before committing, run full suite: `make test-all`
-
-The Docker setup mounts source code as volumes, so you don't need to rebuild containers for every change during integration testing.
-
-## Feedback
-
-We welcome any feedback regarding the project or the interview process. Your insights are valuable to us as we strive to improve the experience for future candidates.
+`make demo` walks through the rest of the contract against the running container: nulls and
+`imputed_fields`, the 422 cases, `X-Request-ID`, `/ready` and `/metrics`. The interactive
+OpenAPI page is at <http://localhost:8000/docs>. `make help` lists every target.
