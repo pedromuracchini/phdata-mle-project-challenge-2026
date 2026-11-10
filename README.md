@@ -172,3 +172,72 @@ pipeline (`knn+sqft_fill` in
 
 Rejected after the evaluation (ADR 003): scaling inside the imputer (zipcode-only MAPE 35.05 →
 43.53%) and rounding imputed values (no measurable effect).
+
+## Performance
+
+### Before vs after
+
+One session, interleaved A/B (`make ab-bench`), 3 rounds, medians; 500 requests per run from 8
+closed-loop keep-alive clients; server pinned to 6 physical cores (CPUs 0–11), client on CPUs
+12–15. Source, method and caveats: [`docs/benchmarks/final.md`](docs/benchmarks/final.md).
+These are the only "before vs after" numbers in this README.
+
+| Profile | Before | Before req/s | main, 1 worker | main, 6 workers | Before p50 ms | main p50 ms (1 / 6 workers) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| complete | v0 | 34.5 / 40.9 | 319.2 req/s (**9.2×**) | 815.0 req/s (**19.9×**) | 188.0 / 184.2 | 24.7 / 6.8 |
+| one-null-knn | `1697b6a` | 4.8 / 4.8 | 107.6 req/s (**22.3×**) | 204.8 req/s (**42.2×**) | 1656.0 / 1660.0 | 73.7 / 34.8 |
+| zipcode-only | `1697b6a` | 4.8 / 4.8 | 86.2 req/s (**18.1×**) | 191.5 req/s (**39.6×**) | 1687.9 / 1660.0 | 92.5 / 39.9 |
+
+- v0 cannot serve requests with nulls (it returns 422), so for the null profiles "before" is
+  `1697b6a`: v0's serving code plus the Phase 3 imputation.
+- "Before" ran once in each A/B; its two medians are listed as 1-worker A/B / 6-worker A/B.
+  v0's varied by 18% between the two.
+- 6 workers is the deployment as configured. v0 has no worker setting (one process under
+  `--reload`).
+- Pinning penalises v0, whose thread pools are unlimited. Unpinned (v0's best case), v0 serves
+  44.5 req/s and the ratios are 7.8× (1 worker) and 19.0× (6 workers) on `complete`.
+- Memory is the cost: main with six workers uses 801–910 MiB, against 136–237 MiB for the
+  "before" arms (one process).
+
+### What each Phase 4 change contributed
+
+Each step was measured against its parent, in its own session
+([`docs/benchmarks/phase-4-performance.md`](docs/benchmarks/phase-4-performance.md), decisions in
+[ADR 004](docs/adr/004-serving-performance.md)). The ratios are throughput, candidate / parent.
+**They are not comparable across steps and must not be multiplied** to reproduce the table
+above: each one depends on what was still in the way at that point.
+
+| Step | Change | complete | KNN profiles |
+| --- | --- | ---: | ---: |
+| 4 | Remove the per-request `print` of the input frame (70% of a complete request's handler time in the profile) | 3.2× | 1.3× |
+| 5 | Load model, features and demographics once at startup | 1.16× | within noise |
+| 6 | One BLAS/OpenMP thread per process (the pools spun against each other on one-row inputs) | same throughput, CPU per request −79% | 8.0× / 7.0× |
+| 7 | `/predict` as a `def` route (threadpool) | 0.78×, later traced to the Nagle floor (step 8b) | 1.15–1.18× |
+| 8a | No `--reload`; workers from `WEB_CONCURRENCY` | 2.73× | 1.14–1.29× |
+| 10 | `TCP_NODELAY` on every connection (a ~44–48 ms delayed-ACK floor with child processes) | 4.21× with 2 workers | 1.57–1.82× with 2 workers |
+| 8b | 6 workers vs 1 | 2.70× | 2.36× / 2.51× |
+| 11 | Skip the pandas sqft fill when nothing can be derived | not on this path | 1.18–1.22× (1 worker) |
+
+Step 9 (a re-implementation of the KNN imputer) was rejected; the imputer stays scikit-learn's
+`KNNImputer` (`AI_USAGE.md`).
+
+### Cost of observability (Phase 5)
+
+Logging, metrics and request IDs were each measured against the end of Phase 4 (`7257ac9`)
+([`docs/benchmarks/phase-5-production.md`](docs/benchmarks/phase-5-production.md),
+[ADR 005](docs/adr/005-production-readiness.md)):
+
+- **1 worker** (the image default): throughput within 3% of Phase 4 on every profile (final
+  A/B, 500 requests per run). In a longer run (5,000 requests per run, 5 rounds), complete
+  requests cost 0.25 ms more CPU (+6%, 3.94 → 4.19 ms) and served 5% fewer requests
+  (0.95×).
+- **6 workers:** complete requests at 0.82× in the final A/B and 0.91× in the longer run; KNN
+  requests within 3.5%. Testing the explanation "a fixed CPU cost that shows only at
+  saturation" **confirmed it only in part**. The extra CPU is real (about +0.5 ms per request
+  when the six workers are saturated), but in most of the slow runs the server left cores idle
+  (4.7–5.5 busy vs 6.2–6.5) and spent *less* CPU per request, which a CPU cost cannot explain.
+  What the workers wait on is not known. The JSON log was over the 5% budget with one worker,
+  and the metrics with six; both were accepted.
+
+Reproduce any A/B with `make ab-bench CONTROL=<ref> CANDIDATE=<ref|worktree>` (Docker,
+cgroup v2; see the Makefile for the CPU layout variables).
