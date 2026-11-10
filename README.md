@@ -48,7 +48,7 @@ cd phdata-mle-project-challenge-2026
 
 make setup                   # uv sync --frozen: Python 3.12.16 + the locked dependencies in .venv
 uv run pre-commit install    # once per clone: ruff and mypy run on every commit
-make test                    # hook tests, unit tests, characterization test (about 30 s)
+make test                    # hook tests, unit tests, characterization test (about 35 s)
 make docker-build            # verifies the imputer artifact (make check-imputer), builds the image
 make docker-run              # serves on http://localhost:8000, in the foreground; Ctrl+C stops it
 ```
@@ -283,3 +283,35 @@ Added since v0 (v0's runtime list was `fastapi`, `uvicorn`, `pandas`, `scikit-le
 Rejected along the way: `threadpoolctl` as a direct dependency (three environment variables do
 the same, ADR 004) and `python-json-logger` (the standard library is enough for one formatter,
 ADR 005).
+
+## Testing and CI
+
+Times below were measured on the benchmark machine with a warm Docker build cache; a cold
+build takes longer.
+
+| Command | What it covers | Time |
+| --- | --- | --- |
+| `make lint typecheck test` | ruff (lint + format check) and mypy over `src`, `scripts`, `tests` and the hooks; then `make test` | about 35 s (mypy cache warm) |
+| `make test` | On the host, through uv. 38 tests for the Claude Code hooks (`.claude/hooks`); 530 unit tests (`tests/unit`: schema and bounds, imputation, artifacts and startup checks, error bodies, request ID, log, metrics, server settings, the benchmark scripts), including property-based tests (hypothesis) that no subset of null fields returns 500; and the **characterization test**: the 100 rows of `future_unseen_examples.csv` must reproduce `tests/fixtures/baseline_predictions.json` (103 tests). Coverage of `src/` is reported (96%), not gated. | about 35 s |
+| `make test-docker` | The characterization test inside the test image, with the image's locked libraries | 10 s |
+| `make test-integration` | Builds the API image and the test image (Docker Compose), waits for the API's HEALTHCHECK, runs `tests/integration` against the container over HTTP, including the 100-row baseline (102 tests) | 14 s |
+| `make test-unit`, `make test-all` | The unit tests in the test image; unit plus integration | |
+| `make check-imputer` | Refits the KNN imputer in memory from the train split and fails if the committed `imputer.joblib` or its metadata differ in any way (hash, fitted state, bytes of the dump). `make docker-build` runs it first. | 1 s |
+| `make check-equivalence` | **The imputation path, bit for bit.** Inside the service image, every unseen row × all 128 subsets of null house fields goes through the real route; the model's input after imputation, the prediction and `imputed_fields` must match `tests/fixtures/imputation_reference.json`, generated from `1697b6a`'s image (the first version with imputation). Gate for any change to the request path. | about 3 min |
+| `make ab-bench` | Interleaved A/B benchmark of two git refs (or the working tree) in Docker, with CPU pinning; reports throughput, latency, server CPU per request and memory (`scripts/ab_bench.py`). Not a pass/fail test. | minutes, by profile |
+
+**What the characterization test protects.** Complete requests must keep their predictions
+(`.claude/CLAUDE.md`). The fixture was recorded from v0; its only amendment is row 99 (see
+Overview). The fixture is never regenerated unless explicitly asked.
+
+**CI** (`.github/workflows/ci.yml`, GitHub Actions, on every push and pull request; a newer
+push cancels the running one):
+
+1. **Lint, types, tests:** `uv sync --frozen`, `make lint`, `make typecheck`, `make test`, a
+   coverage table in the job summary, `make check-imputer`.
+2. **Image characterization:** `make test-integration`, which builds the production image and
+   runs the 100-row baseline against it over HTTP.
+
+`check-equivalence` and `ab-bench` are not in CI: they were run by hand as gates for every
+change to the request path in Phases 4 and 5 ([ADR 004](docs/adr/004-serving-performance.md),
+[ADR 005](docs/adr/005-production-readiness.md)).
