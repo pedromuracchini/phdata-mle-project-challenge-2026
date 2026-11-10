@@ -241,3 +241,45 @@ Logging, metrics and request IDs were each measured against the end of Phase 4 (
 
 Reproduce any A/B with `make ab-bench CONTROL=<ref> CANDIDATE=<ref|worktree>` (Docker,
 cgroup v2; see the Makefile for the CPU layout variables).
+
+## Dependencies
+
+[ADR 001](docs/adr/001-uv-and-python-version.md) has the reasoning and the migration;
+[`docs/benchmarks/phase-2-uv.md`](docs/benchmarks/phase-2-uv.md) the verification.
+
+- **uv.** v0 had unpinned `requirements.txt` / `requirements-test.txt` and a floating
+  `python:3.10-slim` base image; its working environment existed only in the Docker layer cache.
+  Now `pyproject.toml` declares the dependencies and `uv.lock` (committed) fixes every version
+  and hash. Every Makefile target runs through `uv run --frozen`, and the images run
+  `uv sync --frozen`, so the host, CI and the images use the same versions. uv itself is
+  pinned (0.13.7, `[tool.uv] required-version`, and by digest in the Dockerfiles). Add
+  dependencies with `uv add` / `uv add --dev`, never with pip.
+- **Python 3.12.16**, in `.python-version`, `requires-python` and the digest-pinned
+  `python:3.12.16-slim-trixie` base image. Python 3.10 reached end of life in October 2026. On
+  3.12.16 `model.pkl` loads without warnings and all 100 baseline predictions are bit-for-bit
+  identical to 3.10 (ADR 001).
+- **The libraries behind `model.pkl` are pinned exactly** (`==` in `pyproject.toml`):
+  `scikit-learn==1.7.2`, `numpy==2.2.6`, `pandas==2.3.3`, `scipy==1.15.3` (KNN distances run
+  through it), and `joblib==1.6.0` (it writes and reads `imputer.joblib`). The model was pickled
+  with these versions and must not be retrained; another version can refuse to unpickle, warn,
+  or silently change predictions. A routine `uv lock --upgrade` can move FastAPI or pytest, but
+  never these. Startup also refuses an imputer artifact produced with other scikit-learn,
+  joblib or numpy versions (ADR 002).
+
+Added since v0 (v0's runtime list was `fastapi`, `uvicorn`, `pandas`, `scikit-learn`,
+`pydantic`, `numpy`; its test list was `pytest`, `pytest-cov`, `httpx`, `hypothesis`):
+
+| Package | Group | Why | Added in |
+| --- | --- | --- | --- |
+| `pydantic-settings` | runtime | Typed configuration from environment variables (`src/core/config.py`) | `8b24c40` |
+| `scipy` (pinned) | runtime | Was already installed through scikit-learn; declared to pin it, since KNN distances go through it | `5526b72` |
+| `joblib` (pinned) | runtime | Was already installed through scikit-learn; declared because the imputer artifact is written and read with it directly | `d8e3de7` |
+| `prometheus-client` | runtime | `/metrics`; the standard exposition library, and it aggregates several worker processes (multiprocess mode, ADR 005) | `03df7e4` |
+| `ruff` (pinned) | dev | Lint and format; same version as the pre-commit hook | `5526b72` |
+| `mypy` (pinned) | dev | Type checking (`make typecheck`, pre-commit) | `5526b72` |
+| `pre-commit` | dev | Runs ruff and mypy on every commit | hooks `94f14f0`, locked `5526b72` |
+| `pandas-stubs` (pinned) | dev | Type information for pandas, which ships none; on pandas' release line | `05cca56` |
+
+Rejected along the way: `threadpoolctl` as a direct dependency (three environment variables do
+the same, ADR 004) and `python-json-logger` (the standard library is enough for one formatter,
+ADR 005).
