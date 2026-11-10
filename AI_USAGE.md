@@ -18,6 +18,21 @@ Newest entries first.
 
 ## Entries
 
+### 2026-11-09: blamed the multiprocess metrics regression on disk writeback (wrong)
+
+- **Phase / task:** Phase 5, C12 (Prometheus metrics in multiprocess mode).
+- **Asked:** add multiprocess metrics within the A/B budget; stop and show if over.
+- **Produced:** with six workers, complete requests lost 10–15% throughput at unchanged CPU
+  per request. A rerun without the HEALTHCHECK ruled that out. The agent then put forward,
+  unverified, a cause: the metric files are memory-mapped on overlayfs, so the workers would
+  stall on disk writeback. It also offered "mount a tmpfs" as the deployment advice.
+- **Caught by:** the A/B the human asked for: with `--tmpfs /tmp/prometheus` the loss was the
+  same (0.852).
+- **Outcome:** no deployment advice was published; ADR 005 records the regression as accepted
+  with an unknown cause. Lesson: a hypothesis about a performance cause stays labelled as one
+  until a run tests it. The A/B that could refute it costs two minutes; a wrong
+  recommendation in an ADR costs more.
+
 ### 2026-11-09: unrequested memory tweak cost 5–15% on KNN requests (rejected)
 
 - **Phase / task:** Phase 5, C6 (`model_version` in `/predict`).
