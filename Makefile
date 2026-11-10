@@ -1,6 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
 	setup test test-hooks test-docker lint typecheck bench docker-build docker-run docker-dev \
-	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence coverage-report
+	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence coverage-report demo
 
 # Build the test Docker image
 test-build:
@@ -180,6 +180,13 @@ docker-dev: docker-build
 		$(IMAGE) uvicorn main:app --app-dir /src --host 0.0.0.0 --port 8000 \
 		--http core.server:NoDelayH11Protocol --reload --reload-dir /src
 
+# Live walkthrough against a running API (`make docker-run` in another terminal): a complete
+# request, nulls and imputed_fields, the 422s, X-Request-ID, /ready and a /metrics excerpt.
+DEMO_URL ?= http://localhost:$(PORT)
+demo:
+	$(call require,curl)
+	DEMO_URL=$(DEMO_URL) sh scripts/demo.sh
+
 # Display help information
 help:
 	@echo "Docker-Based Testing Makefile"
@@ -209,6 +216,7 @@ help:
 	@echo "  docker-build      - Build the API image (runs check-imputer first)"
 	@echo "  docker-run        - Run the API on port $(PORT) (WORKERS=N for N processes)"
 	@echo "  docker-dev        - Run the API with src/ mounted and auto-reload (development)"
+	@echo "  demo              - Walk through the API against a running container (DEMO_URL)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test-unit              # Quick unit tests"
