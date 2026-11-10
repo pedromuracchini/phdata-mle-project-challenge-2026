@@ -47,15 +47,23 @@ git clone https://github.com/pedromuracchini/phdata-mle-project-challenge-2026.g
 cd phdata-mle-project-challenge-2026
 
 make setup                   # uv sync --frozen: Python 3.12.16 + the locked dependencies in .venv
-uv run pre-commit install    # once per clone: ruff and mypy run on every commit
+uv run pre-commit install    # only to commit: ruff and mypy then run on every commit
 make test                    # hook tests, unit tests, characterization test (about 35 s)
 make docker-build            # verifies the imputer artifact (make check-imputer), builds the image
 make docker-run              # serves on http://localhost:8000, in the foreground; Ctrl+C stops it
 ```
 
-In a second terminal:
+- `make docker-build` tags the image `mle-project-challenge-2026`. `make docker-run` starts it as
+  a container named `housing-api` (removed when it stops) on host port 8000 (`PORT=N` to change
+  it); a leftover container with that name, or another process on the port, makes it fail.
+- The first `make setup` and `make docker-build` download whatever is not cached yet (Python if
+  uv has not installed 3.12.16, the wheels, the base images), so they take longer than later
+  runs; first-run times were not measured.
+
+In a second terminal, check the server is up, then send a request:
 
 ```bash
+curl -s http://localhost:8000/health      # {"status":"healthy"}
 curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
   -d '{"bedrooms": 4, "bathrooms": 1.0, "sqft_living": 1680, "sqft_lot": 5043, "floors": 1.5,
        "sqft_above": 1680, "sqft_basement": 0, "zipcode": "98118"}'
@@ -67,7 +75,9 @@ curl -s -X POST http://localhost:8000/predict -H "Content-Type: application/json
 
 `make demo` walks through the rest of the contract against the running container: nulls and
 `imputed_fields`, the 422 cases, `X-Request-ID`, `/ready` and `/metrics`. The interactive
-OpenAPI page is at <http://localhost:8000/docs>. `make help` lists every target.
+OpenAPI page is at <http://localhost:8000/docs>. `make help` lists every target; it starts with
+the Docker test targets kept from v0 (`test-unit`, `test-integration`, `test-all`), but the quick
+path is `make test` (Testing and CI).
 
 ## Configuration
 
@@ -95,7 +105,8 @@ volume there, or the workers exit at startup
 (`OSError: [Errno 30] Read-only file system: '/tmp/prometheus/...'`):
 
 ```bash
-docker run --read-only --tmpfs /tmp/prometheus:mode=1777 -p 8000:8000 mle-project-challenge-2026
+docker run --rm --name housing-api-ro --read-only --tmpfs /tmp/prometheus:mode=1777 \
+    -p 8000:8000 mle-project-challenge-2026
 ```
 
 Fixed by the image, **not** meant to be changed: `OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS` and
@@ -292,12 +303,12 @@ build takes longer.
 | Command | What it covers | Time |
 | --- | --- | --- |
 | `make lint typecheck test` | ruff (lint + format check) and mypy over `src`, `scripts`, `tests` and the hooks; then `make test` | about 35 s (mypy cache warm) |
-| `make test` | On the host, through uv. 38 tests for the Claude Code hooks (`.claude/hooks`); 530 unit tests (`tests/unit`: schema and bounds, imputation, artifacts and startup checks, error bodies, request ID, log, metrics, server settings, the benchmark scripts), including property-based tests (hypothesis) that no subset of null fields returns 500; and the **characterization test**: the 100 rows of `future_unseen_examples.csv` must reproduce `tests/fixtures/baseline_predictions.json` (103 tests). Coverage of `src/` is reported (96%), not gated. | about 35 s |
+| `make test` | On the host, through uv. 38 tests for the Claude Code hooks (`.claude/hooks`); 530 unit tests (`tests/unit`: schema and bounds, imputation, artifacts and startup checks, error bodies, request ID, log, metrics, server settings, the benchmark scripts), including property-based tests (hypothesis) that no subset of null fields returns 500; and the **characterization test**: the 100 rows of `src/data/future_unseen_examples.csv` must reproduce `tests/fixtures/baseline_predictions.json` (103 tests). pytest reports the unit and characterization tests together: 633 passed. Coverage of `src/` is reported (96%), not gated. | about 35 s |
 | `make test-docker` | The characterization test inside the test image, with the image's locked libraries | 10 s |
 | `make test-integration` | Builds the API image and the test image (Docker Compose), waits for the API's HEALTHCHECK, runs `tests/integration` against the container over HTTP, including the 100-row baseline (102 tests) | 14 s |
 | `make test-unit`, `make test-all` | The unit tests in the test image; unit plus integration | |
 | `make check-imputer` | Refits the KNN imputer in memory from the train split and fails if the committed `imputer.joblib` or its metadata differ in any way (hash, fitted state, bytes of the dump). `make docker-build` runs it first. | 1 s |
-| `make check-equivalence` | **The imputation path, bit for bit.** Inside the service image, every unseen row × all 128 subsets of null house fields goes through the real route; the model's input after imputation, the prediction and `imputed_fields` must match `tests/fixtures/imputation_reference.json`, generated from `1697b6a`'s image (the first version with imputation). Gate for any change to the request path. | about 3 min |
+| `make check-equivalence` | **The imputation path, bit for bit.** Inside the service image, every unseen row × all 128 subsets of null house fields goes through the real route; the model's input after imputation, the prediction and `imputed_fields` must match `tests/fixtures/imputation_reference.json`, generated from `1697b6a`'s image (main at the start of Phase 4, the first version with imputation) with one BLAS/OpenMP thread; `make help` calls it "the reference from main". Gate for any change to the request path. | about 3 min |
 | `make ab-bench` | Interleaved A/B benchmark of two git refs (or the working tree) in Docker, with CPU pinning; reports throughput, latency, server CPU per request and memory (`scripts/ab_bench.py`). Not a pass/fail test. | minutes, by profile |
 
 **What the characterization test protects.** Complete requests must keep their predictions
