@@ -1,6 +1,6 @@
 .PHONY: test-build test-unit test-integration test-all clean help \
 	setup test test-hooks test-docker lint typecheck bench docker-build docker-run docker-dev \
-	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence
+	fit-imputer check-imputer evaluate-imputation ab-bench check-equivalence coverage-report
 
 # Build the test Docker image
 test-build:
@@ -65,6 +65,12 @@ setup:
 test: test-hooks
 	$(call require,uv)
 	$(THREAD_ENV) $(UV_RUN) pytest tests/unit $(CHARACTERIZATION_TEST)
+
+# Coverage of the last `make test` run (pytest.ini: --cov=src) as a Markdown table; CI writes
+# it to the job summary. Reported, not gated.
+coverage-report:
+	$(call require,uv)
+	@$(UV_RUN) coverage report --format=markdown
 
 # Characterization test inside the test image: complete requests must reproduce
 # tests/fixtures/baseline_predictions.json with the image's (locked) library versions.
@@ -190,6 +196,7 @@ help:
 	@echo "  setup             - Install Python and locked dependencies with uv"
 	@echo "  test              - Run hook, unit and characterization tests (uv)"
 	@echo "  test-hooks        - Run tests for the Claude Code hooks"
+	@echo "  coverage-report   - Coverage of the last 'make test' run (Markdown)"
 	@echo "  test-docker       - Run the characterization test in Docker"
 	@echo "  lint              - Run ruff lint and format check"
 	@echo "  typecheck         - Run mypy"

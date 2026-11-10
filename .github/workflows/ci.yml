@@ -33,6 +33,11 @@ jobs:
       - run: make typecheck
       # Hook, unit and characterization tests, with the coverage report.
       - run: make test
+      # Coverage is reported (job summary), not gated.
+      - name: Coverage summary
+        run: |
+          echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
+          make coverage-report >> "$GITHUB_STEP_SUMMARY"
       - run: make check-imputer
 
   image:
